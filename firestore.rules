@@ -2,8 +2,28 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /rooms/{roomId}/members/{memberId} {
-      allow read, write: if true;
+    function validCode(code) {
+      return code.matches('^[A-Z0-9]{6}$');
+    }
+
+    function validPayload(maxBytes) {
+      return request.resource.data.keys().hasOnly(['payload'])
+        && request.resource.data.payload is string
+        && request.resource.data.payload.size() <= maxBytes;
+    }
+
+    match /rooms/{roomId} {
+      allow get: if validCode(roomId);
+      allow list: if false;
+      allow create, update: if validCode(roomId) && validPayload(30000);
+      allow delete: if false;
+    }
+
+    match /syncs/{syncId} {
+      allow get: if validCode(syncId);
+      allow list: if false;
+      allow create, update: if validCode(syncId) && validPayload(900000);
+      allow delete: if false;
     }
   }
 }

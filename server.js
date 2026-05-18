@@ -1,12 +1,13 @@
 import { createServer } from "node:http";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 
 const port = Number(process.env.PORT || 8080);
 const publicDir = join(process.cwd(), "public");
-const DATA_DIR = join(process.cwd(), "data");
-const ROOMS_FILE = join(DATA_DIR, "rooms.json");
-const SYNCS_FILE = join(DATA_DIR, "syncs.json");
+const FIREBASE_PROJECT_ID = "weight-log-9e860";
+const FIREBASE_API_KEY = "AIzaSyDpmmoDqNt7E60amZK3EtTLMS-aIF7D8Qw";
+const FIRESTORE_BASE =
+  `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents`;
 
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -33,42 +34,35 @@ function resolvePath(url) {
   return join(publicDir, safePath === "/" ? "index.html" : safePath);
 }
 
-// ---- Room storage ----
-let rooms = {};
-
-async function loadRooms() {
-  try {
-    const raw = await readFile(ROOMS_FILE, "utf-8");
-    rooms = JSON.parse(raw);
-  } catch {
-    rooms = {};
-  }
+// ---- Firestore storage ----
+function docUrl(collection, id) {
+  return `${FIRESTORE_BASE}/${collection}/${encodeURIComponent(id)}?key=${FIREBASE_API_KEY}`;
 }
 
-async function persistRooms() {
-  try {
-    await mkdir(DATA_DIR, { recursive: true });
-    await writeFile(ROOMS_FILE, JSON.stringify(rooms), "utf-8");
-  } catch {}
+function encodeDoc(data) {
+  return { fields: { payload: { stringValue: JSON.stringify(data) } } };
 }
 
-// ---- Sync storage (personal cross-device backup) ----
-let syncs = {};
-
-async function loadSyncs() {
-  try {
-    const raw = await readFile(SYNCS_FILE, "utf-8");
-    syncs = JSON.parse(raw);
-  } catch {
-    syncs = {};
-  }
+function decodeDoc(doc) {
+  const raw = doc?.fields?.payload?.stringValue;
+  if (!raw) return null;
+  return JSON.parse(raw);
 }
 
-async function persistSyncs() {
-  try {
-    await mkdir(DATA_DIR, { recursive: true });
-    await writeFile(SYNCS_FILE, JSON.stringify(syncs), "utf-8");
-  } catch {}
+async function readDoc(collection, id) {
+  const res = await fetch(docUrl(collection, id));
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Firestore read failed: ${res.status}`);
+  return decodeDoc(await res.json());
+}
+
+async function writeDoc(collection, id, data) {
+  const res = await fetch(docUrl(collection, id), {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(encodeDoc(data)),
+  });
+  if (!res.ok) throw new Error(`Firestore write failed: ${res.status}`);
 }
 
 // Merge entries by date — entry with the latest `ts` wins for the same date
@@ -113,9 +107,8 @@ async function handleApi(req, res, pathname) {
   if (pathname === "/api/room" && req.method === "POST") {
     let code;
     let attempts = 0;
-    do { code = genCode(); attempts++; } while (rooms[code] && attempts < 20);
-    rooms[code] = { created: Date.now(), slot1: null, slot2: null };
-    persistRooms();
+    do { code = genCode(); attempts++; } while (await readDoc("rooms", code) && attempts < 20);
+    await writeDoc("rooms", code, { created: Date.now(), slot1: null, slot2: null });
     return json(res, 200, { code, slot: "slot1" });
   }
 
@@ -129,14 +122,14 @@ async function handleApi(req, res, pathname) {
 
     // GET /api/room/:code  →  fetch room data
     if (!action && req.method === "GET") {
-      const room = rooms[code];
+      const room = await readDoc("rooms", code);
       if (!room) return json(res, 404, { error: "방을 찾을 수 없어요" });
       return json(res, 200, { slot1: room.slot1, slot2: room.slot2 });
     }
 
     // POST /api/room/:code/join  →  join as slot2
     if (action === "join" && req.method === "POST") {
-      const room = rooms[code];
+      const room = await readDoc("rooms", code);
       if (!room) return json(res, 404, { error: "방을 찾을 수 없어요" });
       const slot = !room.slot2 ? "slot2" : !room.slot1 ? "slot1" : null;
       if (!slot) return json(res, 409, { error: "이미 꽉 찼어요" });
@@ -145,7 +138,7 @@ async function handleApi(req, res, pathname) {
 
     // PUT /api/room/:code/slot1|slot2  →  update member delta (+ optionally append a new status)
     if ((action === "slot1" || action === "slot2") && req.method === "PUT") {
-      const room = rooms[code];
+      const room = await readDoc("rooms", code);
       if (!room) return json(res, 404, { error: "방 없음" });
       const body = await readBody(req);
       const existing = room[action] || {};
@@ -165,7 +158,7 @@ async function handleApi(req, res, pathname) {
         statuses,
         updated: Date.now(),
       };
-      persistRooms();
+      await writeDoc("rooms", code, room);
       return json(res, 200, { ok: true });
     }
   }
@@ -174,14 +167,13 @@ async function handleApi(req, res, pathname) {
   if (pathname === "/api/sync" && req.method === "POST") {
     let code;
     let attempts = 0;
-    do { code = genCode(); attempts++; } while (syncs[code] && attempts < 20);
-    syncs[code] = {
+    do { code = genCode(); attempts++; } while (await readDoc("syncs", code) && attempts < 20);
+    await writeDoc("syncs", code, {
       created: Date.now(),
       updated: Date.now(),
       entries: [],
       settings: {},
-    };
-    persistSyncs();
+    });
     return json(res, 200, { code });
   }
 
@@ -190,7 +182,7 @@ async function handleApi(req, res, pathname) {
 
     // GET /api/sync/:code  →  fetch synced data
     if (req.method === "GET") {
-      const sync = syncs[code];
+      const sync = await readDoc("syncs", code);
       if (!sync) return json(res, 404, { error: "동기화 코드를 찾을 수 없어요" });
       return json(res, 200, {
         entries: sync.entries || [],
@@ -202,10 +194,10 @@ async function handleApi(req, res, pathname) {
 
     // PUT /api/sync/:code  →  merge client data, return merged result
     if (req.method === "PUT") {
-      let sync = syncs[code];
+      let sync = await readDoc("syncs", code);
       if (!sync) {
         // Auto-create if missing (allows manual code entry on fresh server)
-        sync = syncs[code] = { created: Date.now(), updated: Date.now(), entries: [], settings: {} };
+        sync = { created: Date.now(), updated: Date.now(), entries: [], settings: {} };
       }
       const body = await readBody(req);
       const incomingEntries = Array.isArray(body.entries) ? body.entries : [];
@@ -222,7 +214,7 @@ async function handleApi(req, res, pathname) {
           : null;
       }
       sync.updated = Date.now();
-      persistSyncs();
+      await writeDoc("syncs", code, sync);
       return json(res, 200, {
         entries: sync.entries,
         settings: sync.settings,
@@ -235,15 +227,16 @@ async function handleApi(req, res, pathname) {
   json(res, 404, { error: "not found" });
 }
 
-await loadRooms();
-await loadSyncs();
-
 createServer(async (req, res) => {
   try {
     const pathname = new URL(req.url || "/", "http://localhost").pathname;
 
     if (pathname.startsWith("/api/")) {
-      await handleApi(req, res, pathname);
+      try {
+        await handleApi(req, res, pathname);
+      } catch {
+        json(res, 500, { error: "server error" });
+      }
       return;
     }
 
