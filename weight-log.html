@@ -4,39 +4,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <meta name="theme-color" content="#f7f3fb" />
-  <title>오늘 체중</title>
+  <meta name="theme-color" content="#fbfaf7" />
+  <title>Weight-room</title>
   <style>
-    /* Soft mauve theme */
     :root {
-      --bg-color: #211827;
-      --bg-overlay: rgba(26, 18, 32, 0.7);
-      --surface: rgba(48, 37, 58, 0.58);
-      --surface-strong: rgba(55, 43, 66, 0.76);
-      --ink: #f4edf7;
-      --ink-soft: #d4c5dc;
-      --ink-faint: #aa99b4;
-      --line: rgba(222, 210, 232, 0.2);
-
-      --accent: #c5a6f2;
-      --accent-glow: rgba(197, 166, 242, 0.26);
-      --accent-soft: rgba(197, 166, 242, 0.16);
-
-      --good: #8bd7b4;
-      --good-soft: rgba(139, 215, 180, 0.14);
-
-      --warn: #eba1bd;
-      --warn-soft: rgba(235, 161, 189, 0.16);
-
-      --shadow: 0 18px 44px rgba(10, 6, 16, 0.28), 0 2px 8px rgba(10, 6, 16, 0.18);
-      --shadow-hover: 0 22px 52px rgba(10, 6, 16, 0.36), 0 4px 12px rgba(10, 6, 16, 0.22);
-      --shadow-floating: 0 16px 32px rgba(10, 6, 16, 0.38);
-    }
-
-    @media (prefers-color-scheme: light) {
-      :root {
-        color-scheme: dark;
-      }
+      color-scheme: light;
+      --bg: #fbfaf7;
+      --surface: #f4f4f4c2;
+      --ink: #2a2724;
+      --ink-soft: #6f6a64;
+      --ink-faint: #b8b2aa;
+      --line: #ece8e0;
+      --accent: #b3acf5;
+      --accent-soft: #fbe7de;
+      --good: #4e8d6c;
+      --shadow: 0 1px 2px rgba(40, 30, 20, 0.04), 0 10px 30px rgba(40, 30, 20, 0.06);
     }
 
     * {
@@ -52,35 +34,13 @@
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro KR", "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
       font-size: 16px;
       -webkit-font-smoothing: antialiased;
-      overscroll-behavior: none;
 
-      /* 배경: 고정된 부드러운 오로라 그라데이션 */
-      background-color: var(--bg-color);
-      background-image: url("/다욧토끼.jpg");
+      background-color: var(--bg);
+      background-image: url("/bg.jpg");
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
       background-attachment: fixed;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      background: var(--bg-overlay);
-      backdrop-filter: blur(1.5px);
-      z-index: 0;
-    }
-
-    @media (prefers-color-scheme: dark) {
-
-      html,
-      body {
-        background-image:
-          radial-gradient(at 0% 0%, rgba(60, 30, 80, 0.4) 0px, transparent 50%),
-          radial-gradient(at 100% 0%, rgba(40, 30, 90, 0.4) 0px, transparent 50%);
-      }
     }
 
     body {
@@ -91,14 +51,11 @@
     }
 
     .app {
-      position: relative;
-      z-index: 1;
       width: 100%;
       max-width: 460px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
-      /* 간격을 살짝 넓혀서 여유롭게 */
+      gap: 18px;
     }
 
     @media (min-width: 720px) {
@@ -116,16 +73,14 @@
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      padding: 0 8px;
-      margin-bottom: 4px;
+      padding: 0 4px;
     }
 
     .header h1 {
       margin: 0;
-      font-size: 1.15rem;
-      font-weight: 700;
+      font-size: 1.05rem;
+      font-weight: 600;
       letter-spacing: -0.01em;
-      color: var(--ink);
     }
 
     .header .streak {
@@ -135,47 +90,37 @@
 
     .header .streak strong {
       color: var(--accent);
-      font-weight: 700;
+      font-weight: 600;
     }
 
-    /* Cards (부드러운 종이 느낌) */
+    /* Cards */
     .card {
       background: var(--surface);
-      border: 1px solid rgba(244, 237, 247, 0.18);
-      border-radius: 28px;
-      /* 더 둥글고 귀엽게 */
+      border-radius: 22px;
       box-shadow: var(--shadow);
-      padding: 24px;
-      transition: box-shadow 0.3s ease;
-      backdrop-filter: blur(18px) saturate(1.18);
-      -webkit-backdrop-filter: blur(18px) saturate(1.18);
-    }
-
-    .card:hover {
-      box-shadow: var(--shadow-hover);
+      padding: 22px;
     }
 
     .card-title {
-      font-size: 0.8rem;
-      font-weight: 700;
+      font-size: 0.78rem;
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: var(--ink-faint);
-      margin: 0 0 16px;
+      margin: 0 0 14px;
     }
 
     /* Wheel */
     .wheel-card {
-      padding: 24px 0;
+      padding: 18px 0 20px;
       position: relative;
     }
 
     .wheel-date {
       text-align: center;
-      font-size: 0.9rem;
-      font-weight: 600;
+      font-size: 0.85rem;
       color: var(--ink-soft);
-      margin-bottom: 12px;
+      margin-bottom: 6px;
     }
 
     .wheel-wrap {
@@ -191,9 +136,7 @@
       height: 100%;
       align-items: stretch;
       justify-content: center;
-      gap: 4px;
-      position: relative;
-      z-index: 1;
+      gap: 2px;
     }
 
     .wheel-scroll {
@@ -202,7 +145,7 @@
       scroll-snap-type: y mandatory;
       scrollbar-width: none;
       -ms-overflow-style: none;
-      padding: 116px 0;
+      padding: 120px 0;
       scroll-behavior: smooth;
     }
 
@@ -211,21 +154,21 @@
     }
 
     .wheel-int {
-      width: 110px;
+      width: 100px;
     }
 
     .wheel-dec {
-      width: 85px;
+      width: 80px;
     }
 
     .wheel-int .wheel-cell {
       justify-content: flex-end;
-      padding-right: 8px;
+      padding-right: 4px;
     }
 
     .wheel-dec .wheel-cell {
       justify-content: flex-start;
-      padding-left: 8px;
+      padding-left: 4px;
     }
 
     .wheel-dot {
@@ -235,31 +178,29 @@
       color: var(--accent);
       line-height: 1;
       pointer-events: none;
-      transform: translateY(0.12em);
-      padding: 0 2px;
-      opacity: 0.8;
+      transform: translateY(0.18em);
+      padding: 0 1px;
     }
 
     .wheel-unit-fixed {
       align-self: center;
-      font-size: 1rem;
-      color: var(--ink-soft);
-      font-weight: 600;
-      margin-left: 8px;
+      font-size: 0.95rem;
+      color: var(--ink-faint);
+      font-weight: 500;
+      margin-left: 10px;
       pointer-events: none;
     }
 
     .wheel-cell {
-      height: 48px;
-      /* 터치 영역 확대 */
+      height: 40px;
       scroll-snap-align: center;
       display: flex;
       align-items: center;
       font-variant-numeric: tabular-nums;
-      font-weight: 400;
+      font-weight: 500;
       color: var(--ink-faint);
-      transition: color 0.2s, font-size 0.2s, font-weight 0.2s, transform 0.2s;
-      font-size: 1rem;
+      transition: color 0.18s, font-size 0.18s, font-weight 0.18s, transform 0.18s;
+      font-size: 1.05rem;
       user-select: none;
     }
 
@@ -270,37 +211,35 @@
 
     .wheel-cell.adj {
       color: var(--ink);
-      font-size: 1.8rem;
+      font-size: 1.7rem;
       font-weight: 600;
     }
 
     .wheel-cell.selected {
       color: var(--accent);
-      font-size: 2.6rem;
-      font-weight: 600;
+      font-size: 2.4rem;
+      font-weight: 700;
       letter-spacing: -0.02em;
     }
 
     .wheel-dec .wheel-cell.selected {
-      font-size: 2.2rem;
+      font-size: 2rem;
     }
 
     .wheel-dec .wheel-cell.adj {
-      font-size: 1.55rem;
+      font-size: 1.45rem;
     }
 
-    /* 딱딱한 선 대신 부드러운 하이라이트 박스 */
     .wheel-highlight {
       position: absolute;
-      left: 20px;
-      right: 20px;
+      left: 12px;
+      right: 12px;
       top: 50%;
-      height: 56px;
+      height: 52px;
       transform: translateY(-50%);
       pointer-events: none;
-      background: var(--accent-soft);
-      border-radius: 20px;
-      z-index: 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
     }
 
     .wheel-fade-top,
@@ -308,78 +247,69 @@
       position: absolute;
       left: 0;
       right: 0;
-      height: 100px;
+      height: 90px;
       pointer-events: none;
       z-index: 2;
     }
 
     .wheel-fade-top {
       top: 0;
-      background: linear-gradient(var(--surface) 20%, transparent);
+      background: linear-gradient(var(--surface), transparent);
     }
 
     .wheel-fade-bot {
       bottom: 0;
-      background: linear-gradient(transparent, var(--surface) 80%);
+      background: linear-gradient(transparent, var(--surface));
     }
 
-    /* Buttons */
     .wheel-actions {
       display: flex;
       justify-content: center;
-      gap: 12px;
+      gap: 10px;
       margin-top: 16px;
-      padding: 0 20px;
+      padding: 0 18px;
     }
 
     .btn {
       border: none;
-      border-radius: 18px;
-      /* 동글동글 */
-      padding: 14px 24px;
-      font-size: 13px;
-      font-weight: 500;
+      border-radius: 14px;
+      padding: 13px 22px;
+      font-size: 0.95rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s, opacity 0.2s;
+      transition: transform 0.1s, opacity 0.15s, background 0.15s;
       font-family: inherit;
     }
 
     .btn:active {
-      transform: scale(0.95);
+      transform: scale(0.97);
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--accent), #9f7bd1);
-      /* 오로라 그라데이션 */
-      color: #fffafd;
+      background: var(--accent);
+      color: white;
       flex: 1;
-      box-shadow: 0 6px 16px var(--accent-glow);
-      font-size: 15px;
+      max-width: 220px;
     }
 
     .btn-primary:hover {
-      opacity: 0.9;
-      box-shadow: 0 8px 20px var(--accent-glow);
-      transform: translateY(-1px);
+      opacity: 0.92;
     }
 
     .btn-ghost {
-      background: var(--surface-strong);
-      color: var(--ink);
-      padding: 14px 18px;
-      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--ink-soft);
+      padding: 13px 14px;
     }
 
     .btn-ghost:hover {
       color: var(--ink);
-      background: var(--bg-color);
     }
 
     /* Direct input panel */
     .direct-input {
       display: none;
-      padding: 16px 20px 0;
-      animation: drop 0.3s ease-out forwards;
+      padding: 14px 18px 0;
     }
 
     .direct-input.open {
@@ -388,18 +318,16 @@
 
     .direct-input input {
       width: 100%;
-      padding: 16px;
-      font-size: 1.6rem;
-      font-weight: 700;
-      border: 2px solid var(--line);
-      border-radius: 18px;
-      background: var(--bg-color);
+      padding: 14px;
+      font-size: 1.5rem;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--bg);
       color: var(--ink);
       text-align: center;
       font-variant-numeric: tabular-nums;
       font-family: inherit;
       -moz-appearance: textfield;
-      transition: all 0.2s;
     }
 
     .direct-input input::-webkit-outer-spin-button,
@@ -411,44 +339,40 @@
     .direct-input input:focus {
       outline: none;
       border-color: var(--accent);
-      background: var(--surface);
-      box-shadow: 0 0 0 4px var(--accent-soft);
     }
 
     /* Stats row */
     .stats {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
+      gap: 10px;
     }
 
     .stat {
       background: var(--surface);
-      border: 1px solid rgba(244, 237, 247, 0.16);
-      border-radius: 24px;
-      padding: 18px 12px;
+      border-radius: 16px;
+      padding: 14px 12px;
       text-align: center;
       box-shadow: var(--shadow);
-      transition: transform 0.2s, box-shadow 0.2s;
-      backdrop-filter: blur(18px) saturate(1.18);
-      -webkit-backdrop-filter: blur(18px) saturate(1.18);
+      transition: transform 0.15s, box-shadow 0.15s;
     }
 
     .stat:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 2px 4px rgba(40, 30, 20, 0.05), 0 14px 36px rgba(40, 30, 20, 0.08);
     }
 
     .stat .label {
-      font-size: 0.75rem;
-      font-weight: 700;
+      font-size: 0.7rem;
       color: var(--ink-faint);
-      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
     }
 
     .stat .val {
-      font-size: 1.2rem;
-      font-weight: 800;
+      font-size: 1.1rem;
+      font-weight: 700;
       font-variant-numeric: tabular-nums;
       color: var(--ink);
     }
@@ -462,9 +386,9 @@
     }
 
     .stat .sub {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: var(--ink-faint);
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
     /* Goals */
@@ -472,8 +396,8 @@
       display: grid;
       grid-template-columns: 1fr auto;
       align-items: center;
-      gap: 12px;
-      padding: 14px 0;
+      gap: 10px;
+      padding: 10px 0;
       border-bottom: 1px solid var(--line);
     }
 
@@ -484,21 +408,21 @@
     .goal-meta {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
     }
 
     .goal-name {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       color: var(--ink-soft);
-      font-weight: 700;
+      font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .goal-name .dot {
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
     }
 
@@ -512,168 +436,215 @@
 
     .goal-bar {
       width: 100%;
-      height: 8px;
+      height: 6px;
       background: var(--line);
       border-radius: 999px;
       overflow: hidden;
+      margin-top: 2px;
     }
 
     .goal-fill {
       height: 100%;
       border-radius: 999px;
-      transition: width 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      /* 쫀득한 게이지 애니메이션 */
+      transition: width 0.6s cubic-bezier(.4, .0, .2, 1);
     }
 
-    /* 그라데이션 게이지 */
     .ideal .goal-fill {
-      background: linear-gradient(90deg, var(--accent), #e0c9ff);
+      background: var(--accent);
     }
 
     .real .goal-fill {
-      background: linear-gradient(90deg, var(--good), #b8f0d2);
+      background: var(--good);
     }
 
     .goal-val {
       text-align: right;
       font-variant-numeric: tabular-nums;
-      font-weight: 700;
+      font-weight: 600;
       color: var(--ink);
-      font-size: 1.05rem;
-      min-width: 70px;
+      font-size: 0.95rem;
+      min-width: 64px;
     }
 
     .goal-val small {
       display: block;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: var(--ink-faint);
       font-weight: 500;
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     .goal-edit-title {
-      font-size: 0.8rem;
+      font-size: 0.72rem;
       color: var(--ink-faint);
-      margin-top: 20px;
-      margin-bottom: 6px;
-      font-weight: 700;
+      margin-top: 16px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
     }
 
     .goal-edit-desc {
-      font-size: 0.8rem;
+      font-size: 0.76rem;
       color: var(--ink-faint);
       line-height: 1.5;
-      margin: 0 0 12px;
+      margin: 0 0 10px;
     }
 
     .goal-edit {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px 18px;
+      gap: 10px 14px;
       align-items: center;
-      justify-content: center;
-      background: var(--bg-color);
-      padding: 13px;
-      border-radius: 20px;
+      background: var(--bg);
+      padding: 12px 14px;
+      border-radius: 14px;
     }
 
     .goal-input-cell {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      flex: 1 1 110px;
+      justify-content: center;
     }
 
     .goal-input-cell .cell-label {
-      font-size: 0.85rem;
-      font-weight: 500;
-      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 600;
       color: var(--ink-soft);
+      white-space: nowrap;
     }
 
     .goal-input-cell .input-row {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
     }
 
     .goal-input-cell .input-row em {
       font-style: normal;
       color: var(--ink-faint);
-      font-size: 0.85rem;
-      font-weight: 600;
+      font-size: 0.78rem;
     }
 
     .goal-edit input {
-      width: 68px;
-      padding: 8px 6px;
-      border: 2px solid transparent;
-      border-radius: 12px;
+      width: 64px;
+      padding: 6px 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
       background: var(--surface);
       color: var(--ink);
-      font-size: 13px;
-      font-weight: 500;
+      font-size: 0.92rem;
+      font-weight: 600;
       font-family: inherit;
       font-variant-numeric: tabular-nums;
       text-align: center;
-      transition: all 0.2s;
+      transition: border-color 0.15s;
     }
 
     .goal-edit input:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    /* Split number input (75.00 처럼 정수/소수 분리) */
+    .goal-edit .num-split {
+      display: inline-flex;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 4px 4px;
+      transition: border-color 0.15s;
+    }
+
+    .goal-edit .num-split:focus-within {
+      border-color: var(--accent);
+    }
+
+    .goal-edit .num-split input {
+      width: 24px;
+      padding: 2px 0;
+      border: none;
+      background: transparent;
+      font-size: 0.92rem;
+      font-weight: 600;
+      font-family: inherit;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      color: var(--ink);
+    }
+
+    .goal-edit .num-split input:focus {
+      outline: none;
+      background: var(--accent-soft);
+      border-radius: 4px;
+    }
+
+    .goal-edit .num-dot {
+      font-weight: 700;
+      color: var(--ink-soft);
+      padding: 0 1px;
+      user-select: none;
     }
 
     /* Chart */
     .chart-wrap {
       position: relative;
-      margin-top: 10px;
+      margin-top: 6px;
     }
 
     .chart-empty {
       text-align: center;
       color: var(--ink-faint);
       padding: 40px 0;
-      font-size: 0.95rem;
-      font-weight: 500;
+      font-size: 0.9rem;
+    }
+
+    .chart-label {
+      position: absolute;
+      right: 8px;
+      transform: translateY(-100%);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      opacity: 0.85;
+      pointer-events: none;
+      background: var(--surface);
+      padding: 0 5px;
+      border-radius: 4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .chart-label.ideal {
+      color: var(--accent);
+    }
+
+    .chart-label.real {
+      color: var(--good);
     }
 
     svg.chart {
       display: block;
       width: 100%;
-      height: 190px;
+      height: 180px;
     }
 
     /* Recent list */
     .recent {
-      max-height: 240px;
+      max-height: 220px;
       overflow-y: auto;
-      margin-top: 8px;
-      padding-right: 4px;
-    }
-
-    .recent::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .recent::-webkit-scrollbar-thumb {
-      background: var(--line);
-      border-radius: 10px;
+      margin-top: 4px;
     }
 
     .recent-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 14px 12px;
+      padding: 10px 0;
       border-bottom: 1px solid var(--line);
-      font-size: 0.95rem;
-      border-radius: 16px;
-      transition: background 0.2s;
-    }
-
-    .recent-row:hover {
-      background: var(--bg-color);
+      font-size: 0.92rem;
     }
 
     .recent-row:last-child {
@@ -682,32 +653,29 @@
 
     .recent-date {
       color: var(--ink-soft);
-      font-weight: 600;
+      font-size: 0.85rem;
     }
 
     .recent-val {
       font-variant-numeric: tabular-nums;
-      font-weight: 700;
+      font-weight: 600;
       display: flex;
-      align-items: center;
-      gap: 12px;
+      align-items: baseline;
+      gap: 8px;
     }
 
     .recent-diff {
-      font-size: 0.8rem;
-      font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 6px;
+      font-size: 0.75rem;
+      color: var(--ink-faint);
+      font-weight: 500;
     }
 
     .recent-diff.up {
       color: var(--accent);
-      background: var(--accent-soft);
     }
 
     .recent-diff.down {
       color: var(--good);
-      background: var(--good-soft);
     }
 
     .recent-del {
@@ -715,32 +683,31 @@
       border: none;
       color: var(--ink-faint);
       cursor: pointer;
-      font-size: 1.2rem;
+      font-size: 1rem;
       padding: 4px 8px;
-      border-radius: 10px;
-      transition: all 0.2s;
+      border-radius: 8px;
     }
 
     .recent-del:hover {
-      color: var(--warn);
-      background: var(--warn-soft);
+      color: var(--accent);
+      background: var(--accent-soft);
     }
 
-    /* Toast (부드러운 말풍선 형태) */
+    /* Toast */
     .toast {
       position: fixed;
-      bottom: 40px;
+      bottom: 30px;
       left: 50%;
       transform: translateX(-50%) translateY(20px);
       background: var(--ink);
       color: var(--surface);
-      padding: 14px 24px;
-      border-radius: 24px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      box-shadow: var(--shadow-floating);
+      padding: 12px 20px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
       opacity: 0;
-      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transition: opacity 0.25s, transform 0.25s;
       pointer-events: none;
       z-index: 100;
     }
@@ -751,10 +718,70 @@
     }
 
     /* Goal headline */
-    .goal-summary {
+    /* Period countdown banner */
+    .period-banner {
+      background: linear-gradient(135deg, var(--accent-soft), transparent);
+      border: 1px solid var(--accent);
+      border-radius: 14px;
+      padding: 14px 16px;
       margin-bottom: 16px;
-      padding-bottom: 16px;
-      border-bottom: 1px dashed var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .period-banner-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .period-banner-emoji {
+      font-size: 1.6rem;
+      line-height: 1;
+    }
+
+    .period-banner-title {
+      font-weight: 700;
+      color: var(--ink);
+      font-size: 0.98rem;
+    }
+
+    .period-banner-sub {
+      font-size: 0.8rem;
+      color: var(--ink-soft);
+      line-height: 1.5;
+    }
+
+    .period-banner-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .period-banner-actions button {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--ink);
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .period-banner-actions button:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .goal-summary {
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
     }
 
     .goal-summary .head {
@@ -765,26 +792,24 @@
     }
 
     .goal-summary .cur {
-      font-size: 1.5rem;
-      font-weight: 800;
+      font-size: 1.6rem;
+      font-weight: 700;
       font-variant-numeric: tabular-nums;
       letter-spacing: -0.02em;
-      color: var(--ink);
     }
 
     .goal-summary .delta {
-      font-size: 0.8rem;
-      font-weight: 500;
-      font-family: inherit;
+      font-size: 0.85rem;
       color: var(--ink-soft);
       font-variant-numeric: tabular-nums;
     }
 
     .goal-summary .delta strong {
       color: var(--ink);
-      font-weight: 700;
+      font-weight: 600;
     }
 
+    /* Drop-in animation when saved */
     @keyframes drop {
       0% {
         transform: translateY(-12px);
@@ -792,7 +817,7 @@
       }
 
       60% {
-        transform: translateY(2px);
+        transform: translateY(4px);
         opacity: 1;
       }
 
@@ -803,34 +828,32 @@
     }
 
     .drop {
-      animation: drop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      animation: drop 0.45s cubic-bezier(.4, .0, .2, 1);
     }
 
     /* Partner / together card */
     .partner-hint {
-      font-size: 0.8rem;
-      color: var(--ink-soft);
-      margin: 0 0 16px;
+      font-size: 0.76rem;
+      color: var(--ink-faint);
+      margin: 0 0 12px;
       line-height: 1.5;
+      white-space: nowrap;
     }
 
     .partner-name-wrap {
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .partner-name-wrap input,
     .partner-join-row input {
-      padding: 14px 16px;
-      border: 2px solid var(--line);
-      border-radius: 16px;
-      background: var(--bg-color);
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--bg);
       color: var(--ink);
-      font-size: 1rem;
-      font-weight: 300;
-      font-size: 13px;
+      font-size: 0.95rem;
       font-family: inherit;
-      transition: all 0.2s;
-      opacity: 0.5;
+      transition: border-color 0.15s;
     }
 
     .partner-name-wrap input {
@@ -841,7 +864,6 @@
     .partner-join-row input:focus {
       outline: none;
       border-color: var(--accent);
-      background: var(--surface);
     }
 
     .partner-create-btn {
@@ -851,11 +873,12 @@
     .partner-or {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       color: var(--ink-faint);
-      font-size: 0.8rem;
-      font-weight: 500;
-      margin: 16px 0;
+      font-size: 0.72rem;
+      margin: 10px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
 
     .partner-or::before,
@@ -868,24 +891,30 @@
 
     .partner-join-row {
       display: flex;
-      flex-direction: row;
-      flex-wrap: nowrap;
-      align-items: stretch;
-      gap: 10px;
+      gap: 8px;
     }
 
     .partner-join-row input {
-      flex: 1 1 auto;
+      flex: 1 1 0;
       min-width: 0;
       text-align: center;
-      letter-spacing: 0.15em;
-      font-weight: 500;
+      letter-spacing: 0.2em;
+      font-weight: 600;
       text-transform: uppercase;
+    }
+
+    .partner-join-row input::placeholder {
+      letter-spacing: normal;
+      text-transform: none;
+      font-weight: 400;
+      color: var(--ink-faint);
+      font-size: 0.85rem;
     }
 
     .partner-join-row .btn {
       flex: 0 0 auto;
-      padding: 14px 20px;
+      padding: 10px 18px;
+      font-size: 0.9rem;
       white-space: nowrap;
     }
 
@@ -893,31 +922,33 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
-      margin-top: 8px;
+      margin-bottom: 4px;
+      margin-top: 4px;
     }
 
     .partner-table-header span {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: var(--ink-faint);
-      font-weight: 700;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
 
     .btn-refresh {
-      background: var(--bg-color);
+      background: none;
       border: none;
-      color: var(--ink-soft);
-      font-size: 1.2rem;
+      color: var(--ink-faint);
+      font-size: 1.1rem;
       cursor: pointer;
-      padding: 6px 10px;
-      border-radius: 10px;
+      padding: 4px 8px;
+      border-radius: 8px;
       font-family: inherit;
-      transition: all 0.2s;
+      line-height: 1;
+      transition: color 0.15s, transform 0.3s;
     }
 
     .btn-refresh:hover {
       color: var(--accent);
-      background: var(--accent-soft);
     }
 
     .btn-refresh:active {
@@ -927,113 +958,131 @@
     .room-code-row {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 16px;
-      background: var(--bg-color);
-      border-radius: 18px;
-      margin-bottom: 16px;
+      gap: 10px;
+      padding: 12px 14px;
+      background: var(--bg);
+      border-radius: 14px;
+      margin-bottom: 14px;
     }
 
     .room-code-label {
-      font-size: 0.8rem;
-      color: var(--ink-soft);
-      font-weight: 700;
+      font-size: 0.72rem;
+      color: var(--ink-faint);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
       white-space: nowrap;
     }
 
     .room-code {
       flex: 1;
-      font-size: 1.5rem;
-      font-weight: 800;
-      letter-spacing: 0.15em;
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
       font-variant-numeric: tabular-nums;
       color: var(--accent);
     }
 
     .btn-copy {
-      background: var(--surface);
-      border: 1px solid var(--accent);
-      border-radius: 12px;
-      padding: 8px 14px;
-      font-size: 0.85rem;
-      font-weight: 700;
+      background: var(--accent-soft);
+      border: none;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
       color: var(--accent);
       cursor: pointer;
       font-family: inherit;
       white-space: nowrap;
-      transition: all 0.2s;
     }
 
     .btn-copy:hover {
-      background: var(--accent);
-      color: #fffafd;
+      opacity: 0.8;
     }
 
     .btn-copy:active {
-      transform: scale(0.95);
+      transform: scale(0.96);
     }
 
     .partner-row {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 16px;
-      border-radius: 16px;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: 12px;
       margin-bottom: 8px;
-      background: var(--bg-color);
-      transition: transform 0.2s;
+      background: var(--bg);
     }
 
     .partner-row:last-child {
       margin-bottom: 0;
     }
 
-    .partner-row:hover {
-      transform: translateX(4px);
-    }
-
-    .partner-info {
+    .partner-row-head {
       display: flex;
-      flex-direction: column;
-      gap: 3px;
-      flex: 1;
-      min-width: 0;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
     }
 
     .partner-name {
-      font-size: 1rem;
+      font-size: 0.95rem;
       color: var(--ink);
       font-weight: 600;
     }
 
-    .partner-status {
-      font-size: 0.8rem;
-      color: var(--ink-soft);
-      font-style: italic;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      line-height: 1.3;
+    .partner-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-top: 6px;
+      border-top: 1px dashed var(--line);
     }
 
-    .partner-status.empty {
+    .partner-feed-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+
+    .partner-feed-text {
+      color: var(--ink-soft);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .partner-feed-time {
       color: var(--ink-faint);
-      font-style: normal;
-      opacity: 0.6;
+      font-size: 0.7rem;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .partner-feed-empty {
+      font-size: 0.78rem;
+      color: var(--ink-faint);
+      text-align: center;
+      padding: 4px 0;
+      opacity: 0.7;
     }
 
     /* 내 한마디 입력 */
     .my-status-wrap {
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
     .my-status-wrap input {
       width: 100%;
-      padding: 11px 14px;
+      padding: 10px 14px;
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: var(--bg-color);
+      background: var(--bg);
       color: var(--ink);
       font-size: 0.88rem;
       font-family: inherit;
@@ -1051,13 +1100,9 @@
     }
 
     .partner-delta {
-      font-size: 1.1rem;
-      font-weight: 800;
+      font-size: 1rem;
+      font-weight: 700;
       font-variant-numeric: tabular-nums;
-      background: var(--surface);
-      padding: 4px 10px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(120, 90, 180, 0.08);
     }
 
     .partner-delta.up {
@@ -1071,11 +1116,9 @@
     .partner-waiting {
       text-align: center;
       color: var(--ink-faint);
-      font-size: 0.95rem;
-      padding: 24px 0;
+      font-size: 0.9rem;
+      padding: 16px 0;
       margin: 0;
-      background: var(--bg-color);
-      border-radius: 16px;
     }
 
     .partner-leave {
@@ -1083,46 +1126,221 @@
       border: none;
       color: var(--ink-faint);
       font: inherit;
-      font-size: 0.85rem;
-      font-weight: 600;
+      font-size: 0.8rem;
       cursor: pointer;
       text-decoration: underline;
-      text-underline-offset: 4px;
-      margin-top: 16px;
+      text-underline-offset: 2px;
+      margin-top: 12px;
       display: block;
       padding: 0;
-      transition: color 0.2s;
     }
 
     .partner-leave:hover {
-      color: var(--warn);
+      color: var(--ink-soft);
+    }
+
+    .partner-hint {
+      font-size: 0.78rem;
+      color: var(--ink-faint);
+      margin: 0 0 10px;
+      line-height: 1.5;
+    }
+
+    /* Sync card (디바이스 간 동기화) */
+    .sync-hint {
+      font-size: 0.78rem;
+      color: var(--ink-faint);
+      margin: 0 0 12px;
+      line-height: 1.5;
+    }
+
+    .sync-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sync-join-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .sync-join-row input {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 0.95rem;
+      font-family: inherit;
+      text-align: center;
+      letter-spacing: 0.2em;
+      font-weight: 600;
+      text-transform: uppercase;
+      transition: border-color 0.15s;
+    }
+
+    .sync-join-row input::placeholder {
+      letter-spacing: normal;
+      text-transform: none;
+      font-weight: 400;
+      color: var(--ink-faint);
+      font-size: 0.85rem;
+    }
+
+    .sync-join-row input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .sync-join-row .btn {
+      flex: 0 0 auto;
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    .sync-create-btn {
+      width: 100%;
+    }
+
+    .sync-or {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink-faint);
+      font-size: 0.72rem;
+      margin: 4px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .sync-or::before,
+    .sync-or::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+    }
+
+    .sync-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 14px;
+      background: var(--bg);
+      border-radius: 14px;
+      margin-bottom: 10px;
+    }
+
+    .sync-code-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .sync-code-label {
+      font-size: 0.7rem;
+      color: var(--ink-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+    }
+
+    .sync-code-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+    }
+
+    .sync-auto-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: var(--bg);
+      border-radius: 12px;
+      font-size: 0.82rem;
+      color: var(--ink-soft);
+      font-weight: 500;
+    }
+
+    .sync-auto-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--good);
+      box-shadow: 0 0 0 0 var(--good);
+      animation: syncPulse 2s infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes syncPulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(78, 141, 108, 0.6);
+      }
+
+      70% {
+        box-shadow: 0 0 0 8px rgba(78, 141, 108, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(78, 141, 108, 0);
+      }
+    }
+
+    #syncLast {
+      color: var(--ink-faint);
+      font-weight: 400;
+    }
+
+    .sync-disconnect {
+      background: none;
+      border: none;
+      color: var(--ink-faint);
+      font: inherit;
+      font-size: 0.78rem;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      margin-top: 12px;
+      display: block;
+      padding: 0;
+    }
+
+    .sync-disconnect:hover {
+      color: var(--ink-soft);
     }
 
     /* Footer */
     .footer {
       text-align: center;
-      color: var(--ink-soft);
-      font-size: 0.8rem;
-      margin-top: 8px;
-      font-weight: 500;
+      color: var(--ink-faint);
+      font-size: 0.75rem;
+      margin-top: 4px;
     }
 
     .footer a,
     .footer button {
-      color: var(--ink-soft);
+      color: var(--ink-faint);
       background: none;
       border: none;
       font: inherit;
       cursor: pointer;
       text-decoration: underline;
-      text-underline-offset: 4px;
-      padding: 4px;
-      transition: color 0.2s;
+      text-underline-offset: 2px;
     }
 
     .footer a:hover,
     .footer button:hover {
-      color: var(--ink);
+      color: var(--ink-soft);
     }
 
     /* Desktop two-column layout */
@@ -1136,9 +1354,10 @@
           "stats stats"
           "chart chart"
           "recent partner"
+          "sync sync"
           "foot foot";
-        column-gap: 24px;
-        row-gap: 24px;
+        column-gap: 18px;
+        row-gap: 18px;
       }
 
       .header {
@@ -1169,6 +1388,10 @@
         grid-area: partner;
       }
 
+      .sync-card {
+        grid-area: sync;
+      }
+
       .footer {
         grid-area: foot;
       }
@@ -1180,7 +1403,7 @@
   <div class="app">
 
     <div class="header">
-      <h1>오늘 체중</h1>
+      <h1>Weight log</h1>
       <div class="streak" id="streak"></div>
     </div>
 
@@ -1225,7 +1448,19 @@
     </div>
 
     <div class="card goal-card">
-      <h3 class="card-title">목표</h3>
+      <h3 class="card-title">오늘</h3>
+
+      <div class="period-banner" id="periodBanner" style="display:none">
+        <div class="period-banner-head">
+          <span class="period-banner-emoji">🎉</span>
+          <div class="period-banner-title" id="periodBannerTitle">기간 완료!</div>
+        </div>
+        <div class="period-banner-sub" id="periodBannerSub"></div>
+        <div class="period-banner-actions">
+          <button id="extendPeriodBtn">기간 +4주 연장</button>
+          <button id="restartPeriodBtn">오늘부터 새로 시작</button>
+        </div>
+      </div>
 
       <div class="goal-summary">
         <div class="head">
@@ -1258,15 +1493,33 @@
       <div class="goal-edit">
         <label class="goal-input-cell">
           <span class="cell-label">시작</span>
-          <div class="input-row"><input type="number" step="0.01" id="startInput" /><em>kg</em></div>
+          <div class="input-row">
+            <div class="num-split">
+              <input type="text" inputmode="numeric" maxlength="2" id="startInt" />
+              <span class="num-dot">.</span>
+              <input type="text" inputmode="numeric" maxlength="2" id="startDec" />
+            </div><em>kg</em>
+          </div>
         </label>
         <label class="goal-input-cell">
           <span class="cell-label">위시</span>
-          <div class="input-row"><input type="number" step="0.01" id="idealInput" /><em>kg</em></div>
+          <div class="input-row">
+            <div class="num-split">
+              <input type="text" inputmode="numeric" maxlength="2" id="idealInt" />
+              <span class="num-dot">.</span>
+              <input type="text" inputmode="numeric" maxlength="2" id="idealDec" />
+            </div><em>kg</em>
+          </div>
         </label>
         <label class="goal-input-cell">
           <span class="cell-label">현실</span>
-          <div class="input-row"><input type="number" step="0.01" id="realInput" /><em>kg</em></div>
+          <div class="input-row">
+            <div class="num-split">
+              <input type="text" inputmode="numeric" maxlength="2" id="realInt" />
+              <span class="num-dot">.</span>
+              <input type="text" inputmode="numeric" maxlength="2" id="realDec" />
+            </div><em>kg</em>
+          </div>
         </label>
         <label class="goal-input-cell">
           <span class="cell-label">기간</span>
@@ -1310,7 +1563,7 @@
           <button class="btn-copy" id="copyCodeBtn">복사</button>
         </div>
         <div class="my-status-wrap">
-          <input type="text" id="myStatusInput" placeholder="오늘 한마디 💬 (예: 폭식했어 ㅠ)" maxlength="40" />
+          <input type="text" id="myStatusInput" placeholder="한마디 남기기 💬 (Enter로 게시)" maxlength="40" />
         </div>
         <div class="partner-table-header">
           <span>시작 대비 변화량</span>
@@ -1318,6 +1571,37 @@
         </div>
         <div id="partnerTable"></div>
         <button class="partner-leave" id="leaveRoomBtn">방 나가기</button>
+      </div>
+    </div>
+
+    <div class="card sync-card">
+      <h3 class="card-title">디바이스 동기화 🔄</h3>
+
+      <div id="syncSetup">
+        <p class="sync-hint">같은 코드로 연결하면 PC ↔ 모바일 어디서든 같은 기록을 볼 수 있어요.</p>
+        <div class="sync-actions">
+          <button class="btn btn-primary sync-create-btn" id="createSyncBtn">동기화 코드 만들기</button>
+          <div class="sync-or">또는</div>
+          <div class="sync-join-row">
+            <input type="text" id="syncCodeInput" placeholder="이미 만든 코드 입력" maxlength="6" />
+            <button class="btn btn-ghost" id="connectSyncBtn">연결</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="syncConnected" style="display:none">
+        <div class="sync-status-row">
+          <div class="sync-code-block">
+            <span class="sync-code-label">내 동기화 코드</span>
+            <span class="sync-code-value" id="syncCodeDisplay">------</span>
+          </div>
+          <button class="btn-copy" id="copySyncBtn">복사</button>
+        </div>
+        <div class="sync-auto-status">
+          <span class="sync-auto-dot"></span>
+          <span>자동 동기화 중 · <span id="syncLast">방금</span></span>
+        </div>
+        <button class="sync-disconnect" id="disconnectSyncBtn">연결 해제</button>
       </div>
     </div>
 
@@ -1340,7 +1624,7 @@
       const STORAGE_KEY = 'weightLog.v1';
       const INT_MIN = 30;
       const INT_MAX = 200;
-      const CELL_H = 48;
+      const CELL_H = 40;
 
       // ---- Storage ----
       const defaultState = {
@@ -1521,6 +1805,7 @@
         saveState(state);
         renderAll();
         pushSelf();
+        scheduleSyncPush();
         showToast(i >= 0 ? `오늘 기록 수정됨 · ${cv.toFixed(2)}kg` : `저장됨 · ${cv.toFixed(2)}kg`);
         // Drop animation on both wheels' selected cells
         [wheelInt, wheelDec].forEach(w => {
@@ -1584,10 +1869,58 @@
         setStat('diffStart', last && startE ? round2(last.kg - startE.kg) : null);
       }
 
+      function getPeriodInfo() {
+        const s = state.settings;
+        const first = sortedEntries()[0];
+        if (!s.weeks || (!s.startDate && !first)) return null;
+        const startStr = s.startDate || first.date;
+        const start = new Date(startStr + 'T00:00:00');
+        const target = new Date(start);
+        target.setDate(target.getDate() + s.weeks * 7);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        target.setHours(0, 0, 0, 0);
+        const daysLeft = Math.round((target - today) / 86400000);
+        return { startStr, target, daysLeft, completed: daysLeft <= 0 };
+      }
+
+      function periodLabel(info) {
+        if (!info) return `${state.settings.weeks}주`;
+        const n = info.daysLeft;
+        if (n > 1) return `D-${n}`;
+        if (n === 1) return 'D-1';
+        if (n === 0) return 'D-DAY 🎯';
+        return `+${-n}일 초과`;
+      }
+
+      function renderPeriodBanner(info, cur) {
+        const banner = document.getElementById('periodBanner');
+        if (!info || !info.completed) {
+          banner.style.display = 'none';
+          return;
+        }
+        const s = state.settings;
+        const delta = round2(cur - s.startKg);
+        const sign = delta > 0 ? '+' : '';
+        const idealHit = cur <= s.idealKg;
+        const realHit = cur <= s.realKg;
+        const status = idealHit ? '위시 목표 달성! 🏆' : realHit ? '현실 목표 달성! 👏' : '수고했어요 💪';
+        const overshoot = info.daysLeft < 0 ? ` · ${-info.daysLeft}일 초과` : '';
+        document.getElementById('periodBannerTitle').textContent =
+          `${s.weeks}주 기간이 끝났어요!${overshoot}`;
+        document.getElementById('periodBannerSub').innerHTML =
+          `시작 ${s.startKg.toFixed(2)}kg → 현재 <strong>${cur.toFixed(2)}kg</strong> (${sign}${delta.toFixed(2)}kg) · ${status}`;
+        banner.style.display = 'flex';
+      }
+
       function renderGoals() {
         const s = state.settings;
         const last = lastEntry();
         const cur = last ? last.kg : s.startKg;
+        const period = getPeriodInfo();
+        const pLabel = periodLabel(period);
+
+        renderPeriodBanner(period, cur);
 
         document.getElementById('goalCur').textContent = `${cur.toFixed(2)} kg`;
         const deltaStart = round2(cur - s.startKg);
@@ -1619,14 +1952,24 @@
         const remainReal = round2(cur - s.realKg);
 
         document.getElementById('idealVal').innerHTML =
-          `${s.idealKg.toFixed(2)} kg<small>${remainIdeal > 0 ? `${remainIdeal.toFixed(2)}kg 남음` : remainIdeal < 0 ? '달성 🎉' : '딱 맞음'} · ${s.weeks}주</small>`;
+          `${s.idealKg.toFixed(2)} kg<small>${remainIdeal > 0 ? `${remainIdeal.toFixed(2)}kg 남음` : remainIdeal < 0 ? '달성 🎉' : '딱 맞음'} · ${pLabel}</small>`;
         document.getElementById('realVal').innerHTML =
-          `${s.realKg.toFixed(2)} kg<small>${remainReal > 0 ? `${remainReal.toFixed(2)}kg 남음` : remainReal < 0 ? '달성 🎉' : '딱 맞음'} · ${s.weeks}주</small>`;
+          `${s.realKg.toFixed(2)} kg<small>${remainReal > 0 ? `${remainReal.toFixed(2)}kg 남음` : remainReal < 0 ? '달성 🎉' : '딱 맞음'} · ${pLabel}</small>`;
 
-        document.getElementById('startInput').value = s.startKg.toFixed(2);
-        document.getElementById('idealInput').value = s.idealKg.toFixed(2);
-        document.getElementById('realInput').value = s.realKg.toFixed(2);
-        document.getElementById('weeksInput').value = s.weeks;
+        const setSplit = (intId, decId, value) => {
+          const intP = Math.floor(value);
+          const decP = Math.round((value - intP) * 100);
+          const intEl = document.getElementById(intId);
+          const decEl = document.getElementById(decId);
+          if (document.activeElement !== intEl) intEl.value = String(intP);
+          if (document.activeElement !== decEl) decEl.value = String(decP).padStart(2, '0');
+        };
+        setSplit('startInt', 'startDec', s.startKg);
+        setSplit('idealInt', 'idealDec', s.idealKg);
+        setSplit('realInt', 'realDec', s.realKg);
+        if (document.activeElement !== document.getElementById('weeksInput')) {
+          document.getElementById('weeksInput').value = s.weeks;
+        }
       }
 
       function renderChart() {
@@ -1639,10 +1982,6 @@
         // Filter last 30 days window
         const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 29);
         const data = e.filter(x => new Date(x.date + 'T00:00:00') >= cutoff);
-        if (data.length < 2) {
-          wrap.innerHTML = '<div class="chart-empty">기록이 하나뿐이에요. 내일 한 번 더 재 보세요.</div>';
-          return;
-        }
         const W = 600, H = 180, P = 24;
         const xs = data.map(d => new Date(d.date + 'T00:00:00').getTime());
         const ys = data.map(d => d.kg);
@@ -1650,7 +1989,10 @@
         const padY = 0.6;
         const minY = Math.min(...ys, state.settings.idealKg, state.settings.realKg) - padY;
         const maxY = Math.max(...ys, state.settings.startKg) + padY;
-        const sx = x => P + ((x - minX) / Math.max(1, maxX - minX)) * (W - P * 2);
+        // If only one point, center horizontally
+        const sx = x => data.length === 1
+          ? W / 2
+          : P + ((x - minX) / Math.max(1, maxX - minX)) * (W - P * 2);
         const sy = y => H - P - ((y - minY) / Math.max(0.1, maxY - minY)) * (H - P * 2);
 
         const linePath = data.map((d, i) => {
@@ -1659,7 +2001,10 @@
           return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
         }).join(' ');
 
-        const areaPath = linePath + ` L ${sx(maxX).toFixed(1)} ${H - P} L ${sx(minX).toFixed(1)} ${H - P} Z`;
+        const hasLine = data.length >= 2;
+        const areaPath = hasLine
+          ? linePath + ` L ${sx(maxX).toFixed(1)} ${H - P} L ${sx(minX).toFixed(1)} ${H - P} Z`
+          : '';
 
         const idealY = sy(state.settings.idealKg);
         const realY = sy(state.settings.realKg);
@@ -1667,8 +2012,11 @@
         const dots = data.map(d => {
           const x = sx(new Date(d.date + 'T00:00:00').getTime());
           const y = sy(d.kg);
-          return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.5" fill="var(--accent)" />`;
+          return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${data.length === 1 ? 4 : 2.5}" fill="var(--accent)" />`;
         }).join('');
+
+        const idealPct = (idealY / H * 100).toFixed(2);
+        const realPct = (realY / H * 100).toFixed(2);
 
         wrap.innerHTML = `
       <svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
@@ -1682,12 +2030,12 @@
               stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 4" opacity="0.5"/>
         <line x1="${P}" x2="${W - P}" y1="${realY.toFixed(1)}"  y2="${realY.toFixed(1)}"
               stroke="var(--good)"   stroke-width="1" stroke-dasharray="3 4" opacity="0.5"/>
-        <text x="${W - P}" y="${(idealY - 4).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--accent)" opacity="0.8">위시 ${state.settings.idealKg.toFixed(2)}</text>
-        <text x="${W - P}" y="${(realY - 4).toFixed(1)}"  text-anchor="end" font-size="10" fill="var(--good)"   opacity="0.8">현실 ${state.settings.realKg.toFixed(2)}</text>
-        <path d="${areaPath}" fill="url(#grad)" />
-        <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        ${hasLine ? `<path d="${areaPath}" fill="url(#grad)" />` : ''}
+        ${hasLine ? `<path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
         ${dots}
       </svg>
+      <span class="chart-label ideal" style="top: ${idealPct}%">위시 ${state.settings.idealKg.toFixed(2)}</span>
+      <span class="chart-label real" style="top: ${realPct}%">현실 ${state.settings.realKg.toFixed(2)}</span>
     `;
       }
 
@@ -1738,16 +2086,103 @@
           if (!isNaN(v)) {
             state.settings[key] = key === 'weeks' ? Math.max(1, Math.round(v)) : round2(v);
             clearTimeout(saveTimer);
-            saveTimer = setTimeout(() => { saveState(state); }, 300);
+            saveTimer = setTimeout(() => {
+              saveState(state);
+              scheduleSyncPush();
+            }, 300);
             renderGoals();
             renderChart();
           }
         });
       }
-      bindSettingInput('startInput', 'startKg');
-      bindSettingInput('idealInput', 'idealKg');
-      bindSettingInput('realInput', 'realKg');
+
+      function bindSplitInput(intId, decId, key) {
+        const intEl = document.getElementById(intId);
+        const decEl = document.getElementById(decId);
+        const cleanDigits = (s) => s.replace(/\D/g, '').slice(0, 2);
+
+        const save = () => {
+          const ip = parseInt(intEl.value || '0', 10);
+          const decStr = (decEl.value || '0').padEnd(2, '0').slice(0, 2);
+          const dp = parseInt(decStr, 10);
+          state.settings[key] = round2(ip + dp / 100);
+          clearTimeout(saveTimer);
+          saveTimer = setTimeout(() => {
+            saveState(state);
+            scheduleSyncPush();
+          }, 300);
+          renderGoals();
+          renderChart();
+        };
+
+        intEl.addEventListener('input', () => {
+          intEl.value = cleanDigits(intEl.value);
+          save();
+          if (intEl.value.length === 2) {
+            decEl.focus();
+            decEl.select();
+          }
+        });
+
+        decEl.addEventListener('input', () => {
+          decEl.value = cleanDigits(decEl.value);
+          save();
+        });
+
+        [intEl, decEl].forEach((el) => {
+          el.addEventListener('focus', () => el.select());
+        });
+
+        intEl.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowRight' && intEl.selectionStart === intEl.value.length) {
+            e.preventDefault();
+            decEl.focus();
+            decEl.setSelectionRange(0, 0);
+          } else if (e.key === '.' || e.key === ',') {
+            e.preventDefault();
+            decEl.focus();
+            decEl.select();
+          }
+        });
+
+        decEl.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowLeft' && decEl.selectionStart === 0) {
+            e.preventDefault();
+            intEl.focus();
+            const len = intEl.value.length;
+            intEl.setSelectionRange(len, len);
+          } else if (e.key === 'Backspace' && decEl.value === '') {
+            e.preventDefault();
+            intEl.focus();
+            const len = intEl.value.length;
+            intEl.setSelectionRange(len, len);
+          }
+        });
+      }
+
+      bindSplitInput('startInt', 'startDec', 'startKg');
+      bindSplitInput('idealInt', 'idealDec', 'idealKg');
+      bindSplitInput('realInt', 'realDec', 'realKg');
       bindSettingInput('weeksInput', 'weeks');
+
+      document.getElementById('extendPeriodBtn').addEventListener('click', () => {
+        state.settings.weeks = (state.settings.weeks || 8) + 4;
+        saveState(state);
+        renderGoals();
+        renderChart();
+        scheduleSyncPush();
+        showToast(`기간 +4주 연장 (총 ${state.settings.weeks}주)`);
+      });
+
+      document.getElementById('restartPeriodBtn').addEventListener('click', () => {
+        if (!confirm('오늘부터 새 기간을 시작할까요? 이전 기록은 그대로 남아 있어요.')) return;
+        state.settings.startDate = todayStr();
+        saveState(state);
+        renderGoals();
+        renderChart();
+        scheduleSyncPush();
+        showToast('새 기간이 시작됐어요!');
+      });
 
       // ---- Toast ----
       const toast = document.getElementById('toast');
@@ -1780,6 +2215,7 @@
           state = { ...defaultState, ...obj, settings: { ...defaultState.settings, ...(obj.settings || {}) } };
           saveState(state);
           renderAll();
+          scheduleSyncPush();
           showToast('불러옴');
         } catch {
           alert('파일을 읽지 못했어요.');
@@ -1791,6 +2227,7 @@
         state = structuredClone(defaultState);
         saveState(state);
         renderAll();
+        scheduleSyncPush();
         showToast('초기화됨');
       });
 
@@ -1845,6 +2282,7 @@
 
       function savePartnerState() {
         localStorage.setItem(PARTNER_KEY, JSON.stringify(partnerState));
+        if (typeof scheduleSyncPush === 'function') scheduleSyncPush();
       }
 
       function myDelta() {
@@ -1853,14 +2291,12 @@
         return round2(last.kg - state.settings.startKg);
       }
 
-      async function pushSelf() {
+      async function pushSelf(newStatus = null) {
         if (!partnerState.code || !partnerState.slot) return;
         const delta = myDelta();
-        const body = {
-          name: partnerState.name,
-          status: partnerState.status || '',
-        };
+        const body = { name: partnerState.name };
         if (delta !== null) body.delta = delta;
+        if (newStatus && newStatus.trim()) body.status = newStatus.trim();
         try {
           await fetch(`/api/room/${partnerState.code}/${partnerState.slot}`, {
             method: 'PUT',
@@ -1868,6 +2304,18 @@
             body: JSON.stringify(body),
           });
         } catch { }
+      }
+
+      function feedTimeAgo(ts) {
+        if (!ts) return '';
+        const diff = Date.now() - ts;
+        if (diff < 5000) return '방금';
+        if (diff < 60000) return `${Math.floor(diff / 1000)}초 전`;
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}분 전`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)}시간 전`;
+        if (diff < 7 * 86400000) return `${Math.floor(diff / 86400000)}일 전`;
+        const d = new Date(ts);
+        return `${d.getMonth() + 1}/${d.getDate()}`;
       }
 
       async function fetchPartnerData() {
@@ -1891,17 +2339,28 @@
           const sign = m.delta > 0 ? '+' : '';
           const cls = m.delta > 0 ? 'up' : m.delta < 0 ? 'down' : '';
           const name = escapeHtml(m.name || '');
-          const statusText = m.status
-            ? `<span class="partner-status">"${escapeHtml(m.status)}"</span>`
-            : (isMe
-              ? `<span class="partner-status empty">한마디 남겨봐요</span>`
-              : `<span class="partner-status empty">아직 조용해요</span>`);
+          // Backwards-compat: legacy single status string
+          let statuses = Array.isArray(m.statuses) ? m.statuses : [];
+          if (!statuses.length && m.status) {
+            statuses = [{ text: m.status, ts: m.updated || Date.now() }];
+          }
+          // Newest first, up to 3
+          const recent = statuses.slice().reverse().slice(0, 3);
+          const feedHtml = recent.length
+            ? recent.map((s) =>
+              `<div class="partner-feed-item">
+                <span class="partner-feed-text">${escapeHtml(s.text || '')}</span>
+                <span class="partner-feed-time">${feedTimeAgo(s.ts)}</span>
+              </div>`
+            ).join('')
+            : `<div class="partner-feed-empty">${isMe ? '한마디 남겨봐요' : '아직 조용해요'}</div>`;
+
           return `<div class="partner-row">
-        <div class="partner-info">
+        <div class="partner-row-head">
           <span class="partner-name">${name}${isMe ? ' (나)' : ''}</span>
-          ${statusText}
+          <span class="partner-delta ${cls}">${sign}${m.delta.toFixed(2)} kg</span>
         </div>
-        <span class="partner-delta ${cls}">${sign}${m.delta.toFixed(2)} kg</span>
+        <div class="partner-feed">${feedHtml}</div>
       </div>`;
         }).filter(Boolean);
         table.innerHTML = rows.length
@@ -1925,8 +2384,6 @@
           setup.style.display = 'none';
           room.style.display = 'block';
           document.getElementById('roomCodeDisplay').textContent = partnerState.code;
-          const si = document.getElementById('myStatusInput');
-          if (si) si.value = partnerState.status || '';
           fetchPartnerData();
           startPolling();
         } else {
@@ -1945,6 +2402,7 @@
           savePartnerState();
           renderPartner();
           await pushSelf();
+          await pushSyncData({ silent: true });
           showToast(`방 만들었어! 코드: ${data.code}`);
         } catch {
           showToast('오류가 났어요. 다시 시도해 봐요.');
@@ -1967,6 +2425,7 @@
           savePartnerState();
           renderPartner();
           await pushSelf();
+          await pushSyncData({ silent: true });
           showToast(`방에 참여했어! 코드: ${code}`);
         } catch {
           showToast('오류가 났어요.');
@@ -1986,27 +2445,255 @@
         partnerState = { code: null, slot: null, name: partnerState.name, status: '' };
         savePartnerState();
         renderPartner();
+        pushSyncData({ silent: true });
       });
 
       const myStatusInput = document.getElementById('myStatusInput');
 
       async function saveMyStatus() {
         const v = myStatusInput.value.trim().slice(0, 40);
-        if (v === (partnerState.status || '')) return;
-        partnerState.status = v;
-        savePartnerState();
-        await pushSelf();
-        fetchPartnerData();
+        if (!v) return;
+        myStatusInput.value = '';
+        await pushSelf(v);
+        await fetchPartnerData();
       }
 
-      myStatusInput.addEventListener('blur', saveMyStatus);
       myStatusInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); myStatusInput.blur(); }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          saveMyStatus();
+        }
       });
 
       loadPartnerState();
-      myStatusInput.value = partnerState.status || '';
       renderPartner();
+
+      // ---- Cross-device sync ----
+      const SYNC_KEY = 'weightLog.sync.v1';
+      let syncState = { code: null, lastSynced: null };
+      let syncPushTimer = null;
+
+      function loadSyncState() {
+        try {
+          const raw = localStorage.getItem(SYNC_KEY);
+          if (raw) syncState = { ...syncState, ...JSON.parse(raw) };
+        } catch { }
+      }
+
+      function saveSyncState() {
+        localStorage.setItem(SYNC_KEY, JSON.stringify(syncState));
+      }
+
+      function syncPayload() {
+        return {
+          entries: sortedEntries(),
+          settings: state.settings,
+          partnerRoom: partnerState.code
+            ? { code: partnerState.code, slot: partnerState.slot, name: partnerState.name }
+            : null,
+        };
+      }
+
+      function mergeSyncedEntries(localEntries = [], remoteEntries = []) {
+        const map = new Map();
+        for (const entry of localEntries) {
+          if (entry?.date) map.set(entry.date, entry);
+        }
+        for (const entry of remoteEntries) {
+          if (!entry?.date) continue;
+          const previous = map.get(entry.date);
+          if (!previous || (Number(entry.ts) || 0) > (Number(previous.ts) || 0)) {
+            map.set(entry.date, entry);
+          }
+        }
+        return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+      }
+
+      function applySyncedData(data) {
+        if (!data || typeof data !== 'object') return;
+        if (Array.isArray(data.entries)) {
+          state.entries = mergeSyncedEntries(state.entries, data.entries);
+        }
+        if (data.settings && typeof data.settings === 'object') {
+          state.settings = { ...state.settings, ...data.settings };
+        }
+        saveState(state);
+        renderAll();
+        const incomingRoom = data.partnerRoom && data.partnerRoom.code ? data.partnerRoom : null;
+        const shouldApplyRoom = incomingRoom && (
+          !partnerState.code ||
+          partnerState.code !== incomingRoom.code ||
+          partnerState.slot !== incomingRoom.slot
+        );
+
+        // Restore partner-room membership from sync, including replacing stale local room data.
+        if (shouldApplyRoom) {
+          partnerState = {
+            ...partnerState,
+            code: incomingRoom.code,
+            slot: incomingRoom.slot,
+            name: incomingRoom.name || partnerState.name,
+          };
+          localStorage.setItem(PARTNER_KEY, JSON.stringify(partnerState));
+          renderPartner();
+        }
+      }
+
+      function formatSyncTime(ts) {
+        if (!ts) return '준비 중';
+        const diff = Date.now() - ts;
+        if (diff < 5000) return '방금';
+        if (diff < 60000) return `${Math.floor(diff / 1000)}초 전`;
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}분 전`;
+        const d = new Date(ts);
+        if (Number.isNaN(d.getTime())) return '준비 중';
+        return `${d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`;
+      }
+
+      function renderSync() {
+        const setup = document.getElementById('syncSetup');
+        const connected = document.getElementById('syncConnected');
+        const codeEl = document.getElementById('syncCodeDisplay');
+        const lastEl = document.getElementById('syncLast');
+
+        if (syncState.code) {
+          setup.style.display = 'none';
+          connected.style.display = 'block';
+          codeEl.textContent = syncState.code;
+          lastEl.textContent = formatSyncTime(syncState.lastSynced);
+        } else {
+          setup.style.display = 'block';
+          connected.style.display = 'none';
+          codeEl.textContent = '------';
+        }
+      }
+
+      async function createSyncCode() {
+        try {
+          const res = await fetch('/api/sync', { method: 'POST' });
+          if (!res.ok) throw new Error('sync create failed');
+          const data = await res.json();
+          syncState = { code: data.code, lastSynced: null };
+          saveSyncState();
+          renderSync();
+          await pushSyncData({ silent: true });
+          showToast(`동기화 코드: ${data.code}`);
+        } catch {
+          showToast('동기화 코드를 만들지 못했어요.');
+        }
+      }
+
+      async function connectSyncCode() {
+        const code = document.getElementById('syncCodeInput').value.trim().toUpperCase();
+        if (code.length < 6) {
+          showToast('6자리 코드를 입력해 주세요.');
+          return;
+        }
+
+        try {
+          const res = await fetch(`/api/sync/${code}`);
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showToast(err.error || '동기화 코드를 찾지 못했어요.');
+            return;
+          }
+          const data = await res.json();
+          syncState = { code, lastSynced: data.updated || Date.now() };
+          applySyncedData(data);
+          saveSyncState();
+          renderSync();
+          await pushSyncData({ silent: true });
+          showToast('동기화 연결됨');
+        } catch {
+          showToast('동기화 연결에 실패했어요.');
+        }
+      }
+
+      async function pullSyncData() {
+        if (!syncState.code) return;
+        try {
+          const res = await fetch(`/api/sync/${syncState.code}`);
+          if (!res.ok) throw new Error('sync pull failed');
+          const data = await res.json();
+          applySyncedData(data);
+          syncState.lastSynced = data.updated || Date.now();
+          saveSyncState();
+          renderSync();
+          showToast('동기화 데이터 가져옴');
+        } catch {
+          showToast('가져오기에 실패했어요.');
+        }
+      }
+
+      async function pushSyncData(options = {}) {
+        if (!syncState.code) return;
+        try {
+          const res = await fetch(`/api/sync/${syncState.code}`, {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(syncPayload()),
+          });
+          if (!res.ok) throw new Error('sync push failed');
+          const data = await res.json();
+          applySyncedData(data);
+          syncState.lastSynced = data.updated || Date.now();
+          saveSyncState();
+          renderSync();
+          if (!options.silent) showToast('동기화 데이터 올림');
+        } catch {
+          if (!options.silent) showToast('올리기에 실패했어요.');
+        }
+      }
+
+      function scheduleSyncPush() {
+        if (!syncState.code) return;
+        clearTimeout(syncPushTimer);
+        syncPushTimer = setTimeout(() => {
+          pushSyncData({ silent: true });
+        }, 900);
+      }
+
+      document.getElementById('createSyncBtn').addEventListener('click', createSyncCode);
+      document.getElementById('connectSyncBtn').addEventListener('click', connectSyncCode);
+      document.getElementById('copySyncBtn').addEventListener('click', () => {
+        navigator.clipboard?.writeText(syncState.code).then(() => showToast('동기화 코드 복사됨!'));
+      });
+      document.getElementById('disconnectSyncBtn').addEventListener('click', () => {
+        if (!confirm('이 기기에서 동기화 연결을 해제할까요? 서버 데이터는 삭제되지 않아요.')) return;
+        syncState = { code: null, lastSynced: null };
+        saveSyncState();
+        renderSync();
+      });
+      document.getElementById('syncCodeInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          connectSyncCode();
+        }
+      });
+
+      loadSyncState();
+      renderSync();
+
+      // Silent auto-pull on load + when tab regains focus + every 60s
+      async function autoPull() {
+        if (!syncState.code) return;
+        try {
+          const res = await fetch(`/api/sync/${syncState.code}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          applySyncedData(data);
+          syncState.lastSynced = data.updated || Date.now();
+          saveSyncState();
+          renderSync();
+        } catch { }
+      }
+      if (syncState.code) autoPull();
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') autoPull();
+      });
+      setInterval(autoPull, 60000);
+      // Refresh just the "방금 / N분 전" label every 30s so it stays current
+      setInterval(() => { if (syncState.code) renderSync(); }, 30000);
 
       // Keyboard shortcuts (desktop nicety)
       document.addEventListener('keydown', (e) => {

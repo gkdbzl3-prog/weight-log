@@ -2402,6 +2402,7 @@
           savePartnerState();
           renderPartner();
           await pushSelf();
+          await pushSyncData({ silent: true });
           showToast(`방 만들었어! 코드: ${data.code}`);
         } catch {
           showToast('오류가 났어요. 다시 시도해 봐요.');
@@ -2424,6 +2425,7 @@
           savePartnerState();
           renderPartner();
           await pushSelf();
+          await pushSyncData({ silent: true });
           showToast(`방에 참여했어! 코드: ${code}`);
         } catch {
           showToast('오류가 났어요.');
@@ -2443,6 +2445,7 @@
         partnerState = { code: null, slot: null, name: partnerState.name, status: '' };
         savePartnerState();
         renderPartner();
+        pushSyncData({ silent: true });
       });
 
       const myStatusInput = document.getElementById('myStatusInput');
@@ -2516,13 +2519,20 @@
         }
         saveState(state);
         renderAll();
-        // Restore partner-room membership on this device if it's not set yet
-        if (data.partnerRoom && data.partnerRoom.code && !partnerState.code) {
+        const incomingRoom = data.partnerRoom && data.partnerRoom.code ? data.partnerRoom : null;
+        const shouldApplyRoom = incomingRoom && (
+          !partnerState.code ||
+          partnerState.code !== incomingRoom.code ||
+          partnerState.slot !== incomingRoom.slot
+        );
+
+        // Restore partner-room membership from sync, including replacing stale local room data.
+        if (shouldApplyRoom) {
           partnerState = {
             ...partnerState,
-            code: data.partnerRoom.code,
-            slot: data.partnerRoom.slot,
-            name: data.partnerRoom.name || partnerState.name,
+            code: incomingRoom.code,
+            slot: incomingRoom.slot,
+            name: incomingRoom.name || partnerState.name,
           };
           localStorage.setItem(PARTNER_KEY, JSON.stringify(partnerState));
           renderPartner();
