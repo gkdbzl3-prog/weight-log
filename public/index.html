@@ -1205,9 +1205,17 @@
     }
 
     @keyframes syncPulse {
-      0%   { box-shadow: 0 0 0 0 rgba(78, 141, 108, 0.6); }
-      70%  { box-shadow: 0 0 0 8px rgba(78, 141, 108, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(78, 141, 108, 0); }
+      0% {
+        box-shadow: 0 0 0 0 rgba(78, 141, 108, 0.6);
+      }
+
+      70% {
+        box-shadow: 0 0 0 8px rgba(78, 141, 108, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(78, 141, 108, 0);
+      }
     }
 
     #syncLast {
@@ -1317,7 +1325,7 @@
   <div class="app">
 
     <div class="header">
-      <h1>오늘 체중</h1>
+      <h1>Weight log</h1>
       <div class="streak" id="streak"></div>
     </div>
 
