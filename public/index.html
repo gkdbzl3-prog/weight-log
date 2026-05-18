@@ -2292,18 +2292,27 @@
       }
 
       async function pushSelf(newStatus = null) {
-        if (!partnerState.code || !partnerState.slot) return;
+        if (!partnerState.code || !partnerState.slot) return { ok: false, reason: 'no-room' };
         const delta = myDelta();
         const body = { name: partnerState.name };
         if (delta !== null) body.delta = delta;
         if (newStatus && newStatus.trim()) body.status = newStatus.trim();
         try {
-          await fetch(`/api/room/${partnerState.code}/${partnerState.slot}`, {
+          const res = await fetch(`/api/room/${partnerState.code}/${partnerState.slot}`, {
             method: 'PUT',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify(body),
           });
-        } catch { }
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            console.error('pushSelf failed', res.status, err);
+            return { ok: false, reason: err.error || err.detail || `HTTP ${res.status}` };
+          }
+          return { ok: true };
+        } catch (e) {
+          console.error('pushSelf network error', e);
+          return { ok: false, reason: '네트워크 오류' };
+        }
       }
 
       function feedTimeAgo(ts) {
@@ -2453,9 +2462,21 @@
       async function saveMyStatus() {
         const v = myStatusInput.value.trim().slice(0, 40);
         if (!v) return;
-        myStatusInput.value = '';
-        await pushSelf(v);
-        await fetchPartnerData();
+        if (!partnerState.code || !partnerState.slot) {
+          showToast('먼저 친구방을 만들거나 참여해 주세요.');
+          return;
+        }
+        myStatusInput.disabled = true;
+        const result = await pushSelf(v);
+        myStatusInput.disabled = false;
+        if (result.ok) {
+          myStatusInput.value = '';
+          await fetchPartnerData();
+        } else {
+          // Keep the text so user can retry without retyping
+          showToast(`한마디 저장 실패: ${result.reason || '알 수 없는 오류'}`);
+          myStatusInput.focus();
+        }
       }
 
       myStatusInput.addEventListener('keydown', (e) => {

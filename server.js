@@ -52,7 +52,11 @@ function decodeDoc(doc) {
 async function readDoc(collection, id) {
   const res = await fetch(docUrl(collection, id));
   if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`Firestore read failed: ${res.status}`);
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    console.error(`[Firestore READ ${collection}/${id}] ${res.status}: ${detail.slice(0, 300)}`);
+    throw new Error(`Firestore read failed: ${res.status}`);
+  }
   return decodeDoc(await res.json());
 }
 
@@ -62,7 +66,11 @@ async function writeDoc(collection, id, data) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(encodeDoc(data)),
   });
-  if (!res.ok) throw new Error(`Firestore write failed: ${res.status}`);
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    console.error(`[Firestore WRITE ${collection}/${id}] ${res.status}: ${detail.slice(0, 300)}`);
+    throw new Error(`Firestore write failed: ${res.status}`);
+  }
 }
 
 // Merge entries by date — entry with the latest `ts` wins for the same date
@@ -234,8 +242,9 @@ createServer(async (req, res) => {
     if (pathname.startsWith("/api/")) {
       try {
         await handleApi(req, res, pathname);
-      } catch {
-        json(res, 500, { error: "server error" });
+      } catch (err) {
+        console.error(`[API ${req.method} ${pathname}]`, err);
+        json(res, 500, { error: "server error", detail: String(err?.message || err) });
       }
       return;
     }
