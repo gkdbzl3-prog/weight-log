@@ -1,612 +1,1147 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#f8f7f3" />
-  <title>Weight Room</title>
-  <style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#fbfaf7" />
+<title>오늘 체중</title>
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --surface: #ffffff;
+    --ink: #2a2724;
+    --ink-soft: #6f6a64;
+    --ink-faint: #b8b2aa;
+    --line: #ece8e0;
+    --accent: #d96845;
+    --accent-soft: #fbe7de;
+    --good: #4e8d6c;
+    --shadow: 0 1px 2px rgba(40,30,20,0.04), 0 10px 30px rgba(40,30,20,0.06);
+  }
+  @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #f8f7f3;
-      --surface: #fffdfa;
-      --ink: #27231f;
-      --muted: #756d64;
-      --faint: #aaa198;
-      --line: #e8e1d8;
-      --accent: #d85f43;
-      --accent-soft: #fae4dc;
-      --good: #3d8b67;
-      --good-soft: #e0f0e8;
-      --shadow: 0 12px 34px rgba(54, 43, 31, .08), 0 1px 2px rgba(54, 43, 31, .06);
+      --bg: #17150f;
+      --surface: #211d17;
+      --ink: #f3eee5;
+      --ink-soft: #a39a8d;
+      --ink-faint: #5d564c;
+      --line: #2d2820;
+      --accent: #e87b59;
+      --accent-soft: #3a221a;
+      --good: #7bc09a;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 30px rgba(0,0,0,0.4);
     }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro KR", "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+  body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px 80px;
+  }
+  .app {
+    width: 100%;
+    max-width: 460px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  @media (min-width: 720px) {
+    .app { max-width: 720px; }
+    body { padding: 48px 24px; }
+  }
 
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #15130f;
-        --surface: #211d18;
-        --ink: #f5eee6;
-        --muted: #b2a79a;
-        --faint: #70675d;
-        --line: #332d25;
-        --accent: #ec7b5c;
-        --accent-soft: #3a231b;
-        --good: #79c49b;
-        --good-soft: #1f3429;
-        --shadow: 0 16px 36px rgba(0, 0, 0, .28);
-      }
-    }
+  /* Header */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0 4px;
+  }
+  .header h1 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .header .streak {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+  }
+  .header .streak strong {
+    color: var(--accent);
+    font-weight: 600;
+  }
 
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: var(--bg);
-      color: var(--ink);
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro KR", "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    padding: 22px;
+  }
+  .card-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    margin: 0 0 14px;
+  }
 
-    button, input, textarea { font: inherit; }
+  /* Wheel */
+  .wheel-card {
+    padding: 18px 0 20px;
+    position: relative;
+  }
+  .wheel-date {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+  .wheel-wrap {
+    position: relative;
+    height: 220px;
+    overflow: hidden;
+    margin: 0 auto;
+    max-width: 360px;
+  }
+  .wheel-row {
+    display: flex;
+    height: 100%;
+    align-items: stretch;
+    justify-content: center;
+    gap: 2px;
+  }
+  .wheel-scroll {
+    height: 100%;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 90px 0;
+    scroll-behavior: smooth;
+  }
+  .wheel-scroll::-webkit-scrollbar { display: none; }
+  .wheel-int { width: 100px; }
+  .wheel-dec { width: 80px; }
+  .wheel-int .wheel-cell { justify-content: flex-end; padding-right: 4px; }
+  .wheel-dec .wheel-cell { justify-content: flex-start; padding-left: 4px; }
+  .wheel-dot {
+    align-self: center;
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    pointer-events: none;
+    transform: translateY(0.18em);
+    padding: 0 1px;
+  }
+  .wheel-unit-fixed {
+    align-self: center;
+    font-size: 0.95rem;
+    color: var(--ink-faint);
+    font-weight: 500;
+    margin-left: 10px;
+    pointer-events: none;
+  }
+  .wheel-cell {
+    height: 40px;
+    scroll-snap-align: center;
+    display: flex;
+    align-items: center;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    color: var(--ink-faint);
+    transition: color 0.18s, font-size 0.18s, font-weight 0.18s, transform 0.18s;
+    font-size: 1.05rem;
+    user-select: none;
+  }
+  .wheel-cell.near { color: var(--ink-soft); font-size: 1.3rem; }
+  .wheel-cell.adj  { color: var(--ink); font-size: 1.7rem; font-weight: 600; }
+  .wheel-cell.selected {
+    color: var(--accent);
+    font-size: 2.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .wheel-dec .wheel-cell.selected { font-size: 2rem; }
+  .wheel-dec .wheel-cell.adj      { font-size: 1.45rem; }
+  .wheel-highlight {
+    position: absolute;
+    left: 12px; right: 12px;
+    top: 50%;
+    height: 52px;
+    transform: translateY(-50%);
+    pointer-events: none;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .wheel-fade-top, .wheel-fade-bot {
+    position: absolute;
+    left: 0; right: 0;
+    height: 70px;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .wheel-fade-top { top: 0; background: linear-gradient(var(--surface), transparent); }
+  .wheel-fade-bot { bottom: 0; background: linear-gradient(transparent, var(--surface)); }
+
+  .wheel-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 16px;
+    padding: 0 18px;
+  }
+  .btn {
+    border: none;
+    border-radius: 14px;
+    padding: 13px 22px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.15s, background 0.15s;
+    font-family: inherit;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    flex: 1;
+    max-width: 220px;
+  }
+  .btn-primary:hover { opacity: 0.92; }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink-soft);
+    padding: 13px 14px;
+  }
+  .btn-ghost:hover { color: var(--ink); }
+
+  /* Direct input panel */
+  .direct-input {
+    display: none;
+    padding: 14px 18px 0;
+  }
+  .direct-input.open { display: block; }
+  .direct-input input {
+    width: 100%;
+    padding: 14px;
+    font-size: 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg);
+    color: var(--ink);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-family: inherit;
+    -moz-appearance: textfield;
+  }
+  .direct-input input::-webkit-outer-spin-button,
+  .direct-input input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .direct-input input:focus { outline: none; border-color: var(--accent); }
+
+  /* Stats row */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .stat {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 14px 12px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .stat .label {
+    font-size: 0.7rem;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+  .stat .val {
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .stat .val.up   { color: var(--accent); }
+  .stat .val.down { color: var(--good); }
+  .stat .sub {
+    font-size: 0.7rem;
+    color: var(--ink-faint);
+    margin-top: 2px;
+  }
+
+  /* Goals */
+  .goal {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .goal:last-child { border-bottom: none; }
+  .goal-meta { display: flex; flex-direction: column; gap: 4px; }
+  .goal-name { font-size: 0.85rem; color: var(--ink-soft); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .goal-name .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .ideal .dot { background: var(--accent); }
+  .real  .dot { background: var(--good); }
+  .goal-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--line);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 2px;
+  }
+  .goal-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.6s cubic-bezier(.4,.0,.2,1);
+  }
+  .ideal .goal-fill { background: var(--accent); }
+  .real  .goal-fill { background: var(--good); }
+  .goal-val {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--ink);
+    font-size: 0.95rem;
+    min-width: 64px;
+  }
+  .goal-val small {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--ink-faint);
+    font-weight: 500;
+    margin-top: 1px;
+  }
+  .goal-edit-title {
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+    margin-top: 16px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+  }
+  .goal-edit {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 12px;
+  }
+  .goal-edit label {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+  }
+  .goal-edit label span { font-weight: 500; }
+  .goal-edit label em {
+    font-style: normal;
+    color: var(--ink-faint);
+    font-size: 0.78rem;
+  }
+  .goal-edit input {
+    width: 85px;
+    padding: 7px 8px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 0.9rem;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+  .goal-edit input:focus { outline: none; border-color: var(--accent); }
+
+  /* Chart */
+  .chart-wrap {
+    position: relative;
+    margin-top: 6px;
+  }
+  .chart-empty {
+    text-align: center;
+    color: var(--ink-faint);
+    padding: 40px 0;
+    font-size: 0.9rem;
+  }
+  svg.chart {
+    display: block;
+    width: 100%;
+    height: 180px;
+  }
+
+  /* Recent list */
+  .recent {
+    max-height: 220px;
+    overflow-y: auto;
+    margin-top: 4px;
+  }
+  .recent-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.92rem;
+  }
+  .recent-row:last-child { border-bottom: none; }
+  .recent-date {
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+  }
+  .recent-val {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .recent-diff {
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+    font-weight: 500;
+  }
+  .recent-diff.up   { color: var(--accent); }
+  .recent-diff.down { color: var(--good); }
+  .recent-del {
+    background: none;
+    border: none;
+    color: var(--ink-faint);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 4px 8px;
+    border-radius: 8px;
+  }
+  .recent-del:hover { color: var(--accent); background: var(--accent-soft); }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color: var(--surface);
+    padding: 12px 20px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Goal headline */
+  .goal-summary {
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .goal-summary .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .goal-summary .cur {
+    font-size: 1.6rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .goal-summary .delta {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+  }
+  .goal-summary .delta strong { color: var(--ink); font-weight: 600; }
+
+  /* Drop-in animation when saved */
+  @keyframes drop {
+    0%   { transform: translateY(-12px); opacity: 0; }
+    60%  { transform: translateY(4px);   opacity: 1; }
+    100% { transform: translateY(0);     opacity: 1; }
+  }
+  .drop { animation: drop 0.45s cubic-bezier(.4,.0,.2,1); }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 0.75rem;
+    margin-top: 4px;
+  }
+  .footer a, .footer button {
+    color: var(--ink-faint);
+    background: none;
+    border: none;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .footer a:hover, .footer button:hover { color: var(--ink-soft); }
+
+  /* Desktop two-column layout */
+  @media (min-width: 720px) {
     .app {
-      width: min(960px, 100%);
-      margin: 0 auto;
-      padding: 28px 16px 48px;
       display: grid;
-      gap: 16px;
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas:
+        "head head"
+        "wheel goal"
+        "stats stats"
+        "chart chart"
+        "recent recent"
+        "foot foot";
+      column-gap: 18px;
+      row-gap: 18px;
     }
-
-    .top {
-      display: flex;
-      justify-content: space-between;
-      gap: 14px;
-      align-items: flex-end;
-      padding: 4px 2px 0;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: clamp(1.5rem, 5vw, 2.35rem);
-      letter-spacing: 0;
-    }
-
-    .room {
-      color: var(--muted);
-      font-size: .88rem;
-      text-align: right;
-      line-height: 1.45;
-    }
-
-    .grid {
-      display: grid;
-      gap: 16px;
-    }
-
-    @media (min-width: 820px) {
-      .grid {
-        grid-template-columns: 360px 1fr;
-        align-items: start;
-      }
-    }
-
-    .panel {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
-      padding: 18px;
-    }
-
-    .title {
-      margin: 0 0 14px;
-      color: var(--faint);
-      font-size: .76rem;
-      font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
-
-    .profile {
-      display: grid;
-      grid-template-columns: 1fr 112px;
-      gap: 10px;
-    }
-
-    .field {
-      display: grid;
-      gap: 6px;
-      margin-bottom: 12px;
-    }
-
-    label {
-      color: var(--muted);
-      font-size: .82rem;
-      font-weight: 650;
-    }
-
-    input, textarea {
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--bg);
-      color: var(--ink);
-      padding: 12px 13px;
-      outline: none;
-    }
-
-    textarea {
-      min-height: 76px;
-      resize: vertical;
-      line-height: 1.45;
-    }
-
-    input:focus, textarea:focus { border-color: var(--accent); }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      margin-top: 12px;
-    }
-
-    .btn {
-      border: 0;
-      border-radius: 8px;
-      padding: 12px 15px;
-      font-weight: 750;
-      cursor: pointer;
-    }
-
-    .btn.primary {
-      background: var(--accent);
-      color: white;
-      flex: 1;
-    }
-
-    .btn.secondary {
-      background: var(--accent-soft);
-      color: var(--accent);
-    }
-
-    .hint {
-      color: var(--faint);
-      font-size: .78rem;
-      line-height: 1.45;
-      margin: 8px 0 0;
-    }
-
-    .me-summary {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-top: 14px;
-    }
-
-    .metric {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 10px;
-      min-width: 0;
-    }
-
-    .metric span {
-      display: block;
-      color: var(--faint);
-      font-size: .72rem;
-      margin-bottom: 4px;
-    }
-
-    .metric strong {
-      display: block;
-      font-variant-numeric: tabular-nums;
-      font-size: 1rem;
-      white-space: nowrap;
-    }
-
-    .members {
-      display: grid;
-      gap: 12px;
-    }
-
-    .member {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 14px;
-      display: grid;
-      gap: 12px;
-    }
-
-    .member-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 12px;
-    }
-
-    .name {
-      font-size: 1.08rem;
-      font-weight: 800;
-    }
-
-    .updated {
-      color: var(--faint);
-      font-size: .76rem;
-      white-space: nowrap;
-    }
-
-    .delta-row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-
-    .delta {
-      background: var(--bg);
-      border-radius: 8px;
-      padding: 10px;
-    }
-
-    .delta small {
-      display: block;
-      color: var(--faint);
-      font-size: .7rem;
-      margin-bottom: 3px;
-    }
-
-    .delta b {
-      font-size: 1.05rem;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .up { color: var(--accent); }
-    .down { color: var(--good); }
-
-    .bubble {
-      position: relative;
-      width: fit-content;
-      max-width: 100%;
-      background: var(--good-soft);
-      color: var(--ink);
-      border-radius: 8px;
-      padding: 11px 13px;
-      line-height: 1.45;
-      word-break: keep-all;
-      overflow-wrap: anywhere;
-    }
-
-    .bubble::before {
-      content: "";
-      position: absolute;
-      left: 16px;
-      top: -7px;
-      border-left: 7px solid transparent;
-      border-right: 7px solid transparent;
-      border-bottom: 7px solid var(--good-soft);
-    }
-
-    .empty {
-      color: var(--faint);
-      padding: 34px 0;
-      text-align: center;
-      line-height: 1.5;
-    }
-
-    .toast {
-      position: fixed;
-      left: 50%;
-      bottom: 24px;
-      transform: translateX(-50%) translateY(16px);
-      background: var(--ink);
-      color: var(--surface);
-      padding: 11px 16px;
-      border-radius: 999px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .2s, transform .2s;
-      font-weight: 700;
-      font-size: .9rem;
-    }
-
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-  </style>
+    .header { grid-area: head; }
+    .wheel-card { grid-area: wheel; }
+    .goal-card { grid-area: goal; }
+    .stats { grid-area: stats; }
+    .chart-card { grid-area: chart; }
+    .recent-card { grid-area: recent; }
+    .footer { grid-area: foot; }
+  }
+</style>
 </head>
 <body>
-  <main class="app">
-    <header class="top">
-      <div>
-        <h1>Weight Room</h1>
-        <p class="hint">실제 체중은 내 화면 입력용으로만 쓰고, 친구에게는 +n/-n 변화량과 상태메시지만 보여줘요.</p>
+<div class="app">
+
+  <div class="header">
+    <h1>오늘 체중</h1>
+    <div class="streak" id="streak"></div>
+  </div>
+
+  <div class="card wheel-card">
+    <div class="wheel-date" id="wheelDate"></div>
+    <div class="wheel-wrap">
+      <div class="wheel-fade-top"></div>
+      <div class="wheel-fade-bot"></div>
+      <div class="wheel-highlight"></div>
+      <div class="wheel-row">
+        <div class="wheel-scroll wheel-int" id="wheelInt"></div>
+        <div class="wheel-dot">.</div>
+        <div class="wheel-scroll wheel-dec" id="wheelDec"></div>
+        <div class="wheel-unit-fixed">kg</div>
       </div>
-      <div class="room">
-        방 <strong id="roomName">default</strong><br />
-        URL의 <code>?room=</code> 값으로 방을 나눠요.
+    </div>
+    <div class="wheel-actions">
+      <button class="btn btn-ghost" id="directBtn">직접 입력</button>
+      <button class="btn btn-primary" id="saveBtn">기록</button>
+    </div>
+    <div class="direct-input" id="directInputWrap">
+      <input type="number" step="0.01" id="directInput" placeholder="kg" inputmode="decimal" />
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="label">어제 대비</div>
+      <div class="val" id="diffYday">–</div>
+      <div class="sub" id="ydayDate"></div>
+    </div>
+    <div class="stat">
+      <div class="label">7일 전 대비</div>
+      <div class="val" id="diffWeek">–</div>
+      <div class="sub">한 주</div>
+    </div>
+    <div class="stat">
+      <div class="label">시작 대비</div>
+      <div class="val" id="diffStart">–</div>
+      <div class="sub" id="startDate"></div>
+    </div>
+  </div>
+
+  <div class="card goal-card">
+    <h3 class="card-title">목표</h3>
+
+    <div class="goal-summary">
+      <div class="head">
+        <div class="cur" id="goalCur">– kg</div>
+        <div class="delta" id="goalDelta"></div>
       </div>
-    </header>
+    </div>
 
-    <section class="grid">
-      <div class="panel">
-        <h2 class="title">내 기록</h2>
-
-        <div class="profile">
-          <div class="field">
-            <label for="nickname">이름</label>
-            <input id="nickname" autocomplete="nickname" placeholder="예: 수현" />
-          </div>
-          <div class="field">
-            <label for="baseKg">내 기준값</label>
-            <input id="baseKg" type="number" step="0.01" inputmode="decimal" placeholder="예: 70.0" />
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="todayKg">오늘 내 숫자</label>
-          <input id="todayKg" type="number" step="0.01" inputmode="decimal" placeholder="나만 보는 오늘 값" />
-        </div>
-
-        <div class="field">
-          <label for="statusText">상태메시지</label>
-          <textarea id="statusText" maxlength="80" placeholder="예: 오늘은 산책 성공. 야식 참는 중."></textarea>
-        </div>
-
-        <div class="actions">
-          <button class="btn secondary" id="saveStatusBtn">말풍선만 저장</button>
-          <button class="btn primary" id="saveBtn">변화량 게시</button>
-        </div>
-
-        <p class="hint">입력한 실제 숫자는 이 기기에만 저장돼요. Firestore에는 +n/-n 변화량과 말풍선만 올라갑니다.</p>
-
-        <div class="me-summary">
-          <div class="metric"><span>기준 대비</span><strong id="myTotal">-</strong></div>
-          <div class="metric"><span>어제 대비</span><strong id="myDay">-</strong></div>
-          <div class="metric"><span>7일 전 대비</span><strong id="myWeek">-</strong></div>
-        </div>
+    <div class="goal ideal">
+      <div class="goal-meta">
+        <div class="goal-name"><span class="dot"></span>위시 목표</div>
+        <div class="goal-bar"><div class="goal-fill" id="idealBar" style="width:0%"></div></div>
       </div>
-
-      <div class="panel">
-        <h2 class="title">친구들</h2>
-        <div class="members" id="members"></div>
+      <div class="goal-val" id="idealVal">– kg<small id="idealSub"></small></div>
+    </div>
+    <div class="goal real">
+      <div class="goal-meta">
+        <div class="goal-name"><span class="dot"></span>현실 목표</div>
+        <div class="goal-bar"><div class="goal-fill" id="realBar" style="width:0%"></div></div>
       </div>
-    </section>
-  </main>
+      <div class="goal-val" id="realVal">– kg<small id="realSub"></small></div>
+    </div>
 
-  <div class="toast" id="toast"></div>
+    <div class="goal-edit-title">설정 (한 번만 입력하면 돼요)</div>
+    <div class="goal-edit">
+      <label><span>시작</span><input type="number" step="0.01" id="startInput" /><em>kg</em></label>
+      <label><span>위시</span><input type="number" step="0.01" id="idealInput" /><em>kg</em></label>
+      <label><span>현실</span><input type="number" step="0.01" id="realInput" /><em>kg</em></label>
+      <label><span>기간</span><input type="number" step="1" id="weeksInput" min="1" /><em>주</em></label>
+    </div>
+  </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      doc,
-      onSnapshot,
-      orderBy,
-      query,
-      serverTimestamp,
-      setDoc,
-    } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+  <div class="card chart-card">
+    <h3 class="card-title">최근 30일</h3>
+    <div class="chart-wrap" id="chartWrap">
+      <div class="chart-empty">아직 기록이 없어요. 첫 기록을 남겨봐요.</div>
+    </div>
+  </div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDpmmoDqNt7E60amZK3EtTLMS-aIF7D8Qw",
-      authDomain: "weight-log-9e860.firebaseapp.com",
-      projectId: "weight-log-9e860",
-      storageBucket: "weight-log-9e860.firebasestorage.app",
-      messagingSenderId: "122504199756",
-      appId: "1:122504199756:web:2c69dc0aa9a5b7d5b5fee9",
-      measurementId: "G-59SYNQTCB8",
-    };
+  <div class="card recent-card">
+    <h3 class="card-title">기록</h3>
+    <div class="recent" id="recent"></div>
+  </div>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  <div class="footer">
+    데이터는 이 브라우저에만 저장돼요. ·
+    <button id="exportBtn">JSON 내보내기</button> ·
+    <label style="cursor:pointer;text-decoration:underline;text-underline-offset:2px;">
+      불러오기<input type="file" id="importInput" accept="application/json" style="display:none" />
+    </label> ·
+    <button id="clearBtn">전체 삭제</button>
+  </div>
+</div>
 
-    const params = new URLSearchParams(location.search);
-    const roomId = (params.get("room") || "default").replace(/[^\w-]/g, "").slice(0, 40) || "default";
-    const storageKey = `weightRoom.${roomId}.v1`;
-    const memberKey = `weightRoom.${roomId}.memberId`;
+<div class="toast" id="toast">저장됨</div>
 
-    const todayKey = () => {
-      const d = new Date();
-      const pad = (n) => String(n).padStart(2, "0");
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-    };
+<script>
+(() => {
+  'use strict';
 
-    const daysAgoKey = (days) => {
-      const d = new Date();
-      d.setDate(d.getDate() - days);
-      const pad = (n) => String(n).padStart(2, "0");
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-    };
+  const STORAGE_KEY = 'weightLog.v1';
+  const INT_MIN = 30;
+  const INT_MAX = 200;
+  const CELL_H = 40;
 
-    const round2 = (value) => Math.round(value * 100) / 100;
+  // ---- Storage ----
+  const defaultState = {
+    entries: [],         // [{date:'YYYY-MM-DD', kg:75.4, ts:number}]
+    settings: { startKg: 75, idealKg: 65, realKg: 70, weeks: 8 }
+  };
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return structuredClone(defaultState);
+      const obj = JSON.parse(raw);
+      return { ...structuredClone(defaultState), ...obj, settings: { ...defaultState.settings, ...(obj.settings||{}) } };
+    } catch { return structuredClone(defaultState); }
+  }
+  function saveState(s) { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+  let state = loadState();
 
-    const formatDelta = (value) => {
-      if (value == null || Number.isNaN(value)) return "-";
-      const sign = value > 0 ? "+" : "";
-      return `${sign}${value.toFixed(2)}kg`;
-    };
+  // ---- Helpers ----
+  const fmtDate = d => {
+    if (typeof d === 'string') d = new Date(d + 'T00:00:00');
+    return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
+  };
+  const todayStr = () => {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  };
+  const daysAgoStr = n => {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    const pad = x => String(x).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  };
+  const round1 = x => Math.round(x * 10) / 10;
+  const round2 = x => Math.round(x * 100) / 100;
+  const splitVal = v => {
+    const r = round2(v);
+    const intP = Math.floor(r);
+    const decP = Math.round((r - intP) * 100);
+    return { intP, decP };
+  };
+  const sortedEntries = () => [...state.entries].sort((a,b) => a.date.localeCompare(b.date));
+  const lastEntry = () => {
+    const e = sortedEntries();
+    return e.length ? e[e.length-1] : null;
+  };
 
-    const deltaClass = (value) => {
-      if (value == null || Number.isNaN(value) || Math.abs(value) < 0.005) return "";
-      return value > 0 ? "up" : "down";
-    };
+  // ---- Wheel (dual: integer + 2-digit decimal) ----
+  const wheelInt = document.getElementById('wheelInt');
+  const wheelDec = document.getElementById('wheelDec');
+  const wheelDate = document.getElementById('wheelDate');
+  let intCells = [], decCells = [];
+  let curInt = null, curDec = null;
+  let intRaf = null, decRaf = null;
 
-    const loadLocal = () => {
-      try {
-        const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
-        return {
-          nickname: saved.nickname || "",
-          baseKg: saved.baseKg || "",
-          statusText: saved.statusText || "",
-          entries: Array.isArray(saved.entries) ? saved.entries : [],
-        };
-      } catch {
-        return { nickname: "", baseKg: "", statusText: "", entries: [] };
+  function currentValue() {
+    if (curInt == null || curDec == null) return null;
+    return round2(curInt + curDec / 100);
+  }
+
+  function buildWheelStrip(container, min, max, formatter) {
+    container.innerHTML = '';
+    const cells = [];
+    const frag = document.createDocumentFragment();
+    for (let v = min; v <= max; v++) {
+      const div = document.createElement('div');
+      div.className = 'wheel-cell';
+      div.dataset.val = String(v);
+      div.textContent = formatter(v);
+      div.addEventListener('click', () => scrollStripTo(container, v, min, true));
+      frag.appendChild(div);
+      cells.push(div);
+    }
+    container.appendChild(frag);
+    return cells;
+  }
+
+  function scrollStripTo(container, value, min, smooth) {
+    const idx = value - min;
+    container.scrollTo({ top: idx * CELL_H, behavior: smooth ? 'smooth' : 'auto' });
+  }
+
+  function scrollToValue(v, smooth) {
+    const { intP, decP } = splitVal(v);
+    const intClamp = Math.max(INT_MIN, Math.min(INT_MAX, intP));
+    scrollStripTo(wheelInt, intClamp, INT_MIN, smooth);
+    scrollStripTo(wheelDec, decP, 0, smooth);
+  }
+
+  function updateStripStyles(cells, centerIdx) {
+    const range = 4;
+    for (let i = Math.max(0, centerIdx - range); i <= Math.min(cells.length - 1, centerIdx + range); i++) {
+      const c = cells[i];
+      c.classList.remove('selected','adj','near');
+      const d = Math.abs(i - centerIdx);
+      if (d === 0) c.classList.add('selected');
+      else if (d === 1) c.classList.add('adj');
+      else if (d === 2) c.classList.add('near');
+    }
+    for (const off of [range+1, range+2]) {
+      const a = cells[centerIdx - off];
+      const b = cells[centerIdx + off];
+      if (a) a.classList.remove('selected','adj','near');
+      if (b) b.classList.remove('selected','adj','near');
+    }
+  }
+
+  function onIntScroll() {
+    if (intRaf) return;
+    intRaf = requestAnimationFrame(() => {
+      intRaf = null;
+      const centerIdx = Math.round(wheelInt.scrollTop / CELL_H);
+      const clamped = Math.max(0, Math.min(intCells.length - 1, centerIdx));
+      const v = INT_MIN + clamped;
+      if (v !== curInt) {
+        curInt = v;
+        updateStripStyles(intCells, clamped);
       }
-    };
-
-    const saveLocal = () => {
-      localStorage.setItem(storageKey, JSON.stringify(localState));
-    };
-
-    const getMemberId = () => {
-      let id = localStorage.getItem(memberKey);
-      if (!id) {
-        id = crypto.randomUUID();
-        localStorage.setItem(memberKey, id);
-      }
-      return id;
-    };
-
-    const localState = loadLocal();
-    const memberId = getMemberId();
-
-    const $ = (id) => document.getElementById(id);
-    $("roomName").textContent = roomId;
-    $("nickname").value = localState.nickname;
-    $("baseKg").value = localState.baseKg;
-    $("statusText").value = localState.statusText;
-
-    const findEntry = (date) => localState.entries.find((entry) => entry.date === date);
-    const sortedEntries = () => [...localState.entries].sort((a, b) => a.date.localeCompare(b.date));
-
-    function computeDeltas(todayKg) {
-      const base = Number(localState.baseKg);
-      const yesterday = findEntry(daysAgoKey(1));
-      const week = findEntry(daysAgoKey(7));
-      return {
-        totalDelta: Number.isFinite(base) ? round2(todayKg - base) : null,
-        dayDelta: yesterday ? round2(todayKg - yesterday.kg) : null,
-        weekDelta: week ? round2(todayKg - week.kg) : null,
-      };
-    }
-
-    function renderMine() {
-      const latest = sortedEntries().at(-1);
-      if ($("todayKg").value === "" && latest) $("todayKg").value = latest.kg.toFixed(2);
-      const kg = Number($("todayKg").value || latest?.kg);
-      const deltas = Number.isFinite(kg) ? computeDeltas(kg) : { totalDelta: null, dayDelta: null, weekDelta: null };
-
-      $("myTotal").textContent = formatDelta(deltas.totalDelta);
-      $("myTotal").className = deltaClass(deltas.totalDelta);
-      $("myDay").textContent = formatDelta(deltas.dayDelta);
-      $("myDay").className = deltaClass(deltas.dayDelta);
-      $("myWeek").textContent = formatDelta(deltas.weekDelta);
-      $("myWeek").className = deltaClass(deltas.weekDelta);
-    }
-
-    function showToast(message) {
-      const toast = $("toast");
-      toast.textContent = message;
-      toast.classList.add("show");
-      clearTimeout(showToast.timer);
-      showToast.timer = setTimeout(() => toast.classList.remove("show"), 1600);
-    }
-
-    async function publish({ includeWeight }) {
-      localState.nickname = $("nickname").value.trim() || "익명";
-      localState.baseKg = $("baseKg").value;
-      localState.statusText = $("statusText").value.trim();
-
-      const kg = Number($("todayKg").value);
-      let payload = {
-        memberId,
-        nickname: localState.nickname,
-        statusText: localState.statusText,
-        updatedAt: serverTimestamp(),
-      };
-
-      if (includeWeight) {
-        if (!Number.isFinite(kg)) {
-          showToast("오늘 내 숫자를 입력해 주세요");
-          return;
-        }
-
-        const date = todayKey();
-        const entry = { date, kg: round2(kg), ts: Date.now() };
-        const index = localState.entries.findIndex((item) => item.date === date);
-        if (index >= 0) localState.entries[index] = entry;
-        else localState.entries.push(entry);
-
-        const deltas = computeDeltas(entry.kg);
-        payload = {
-          ...payload,
-          totalDelta: deltas.totalDelta,
-          dayDelta: deltas.dayDelta,
-          weekDelta: deltas.weekDelta,
-          lastLoggedDate: date,
-        };
-      }
-
-      saveLocal();
-      renderMine();
-      await setDoc(doc(db, "rooms", roomId, "members", memberId), payload, { merge: true });
-      showToast(includeWeight ? "변화량 게시됨" : "말풍선 저장됨");
-    }
-
-    function relativeTime(value) {
-      const date = value?.toDate?.();
-      if (!date) return "";
-      const seconds = Math.max(1, Math.round((Date.now() - date.getTime()) / 1000));
-      if (seconds < 60) return "방금";
-      const minutes = Math.round(seconds / 60);
-      if (minutes < 60) return `${minutes}분 전`;
-      const hours = Math.round(minutes / 60);
-      if (hours < 24) return `${hours}시간 전`;
-      return `${Math.round(hours / 24)}일 전`;
-    }
-
-    function renderMembers(snapshot) {
-      const members = snapshot.docs.map((item) => item.data());
-      if (!members.length) {
-        $("members").innerHTML = '<div class="empty">아직 아무도 없어요.<br />친구에게 이 URL을 보내보세요.</div>';
-        return;
-      }
-
-      $("members").innerHTML = members.map((member) => {
-        const isMe = member.memberId === memberId;
-        const status = member.statusText || "오늘 상태메시지가 아직 없어요.";
-        return `
-          <article class="member">
-            <div class="member-head">
-              <div class="name">${escapeHtml(member.nickname || "익명")}${isMe ? " · 나" : ""}</div>
-              <div class="updated">${relativeTime(member.updatedAt)}</div>
-            </div>
-            <div class="delta-row">
-              <div class="delta"><small>기준 대비</small><b class="${deltaClass(member.totalDelta)}">${formatDelta(member.totalDelta)}</b></div>
-              <div class="delta"><small>어제 대비</small><b class="${deltaClass(member.dayDelta)}">${formatDelta(member.dayDelta)}</b></div>
-              <div class="delta"><small>7일 전 대비</small><b class="${deltaClass(member.weekDelta)}">${formatDelta(member.weekDelta)}</b></div>
-            </div>
-            <div class="bubble">${escapeHtml(status)}</div>
-          </article>
-        `;
-      }).join("");
-    }
-
-    function escapeHtml(value) {
-      return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    ["nickname", "baseKg", "todayKg", "statusText"].forEach((id) => {
-      $(id).addEventListener("input", renderMine);
     });
+  }
+  function onDecScroll() {
+    if (decRaf) return;
+    decRaf = requestAnimationFrame(() => {
+      decRaf = null;
+      const centerIdx = Math.round(wheelDec.scrollTop / CELL_H);
+      const clamped = Math.max(0, Math.min(decCells.length - 1, centerIdx));
+      if (clamped !== curDec) {
+        curDec = clamped;
+        updateStripStyles(decCells, clamped);
+      }
+    });
+  }
 
-    $("saveBtn").addEventListener("click", () => publish({ includeWeight: true }));
-    $("saveStatusBtn").addEventListener("click", () => publish({ includeWeight: false }));
+  wheelInt.addEventListener('scroll', onIntScroll, { passive: true });
+  wheelDec.addEventListener('scroll', onDecScroll, { passive: true });
 
-    renderMine();
-    onSnapshot(
-      query(collection(db, "rooms", roomId, "members"), orderBy("updatedAt", "desc")),
-      renderMembers,
-      (error) => {
-        console.error(error);
-        $("members").innerHTML = '<div class="empty">Firestore 연결을 확인해 주세요.<br />규칙 또는 프로젝트 설정 문제일 수 있어요.</div>';
-      },
-    );
-  </script>
+  // Mouse wheel: scroll the strip the cursor is over
+  function bindMouseWheel(el) {
+    el.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      el.scrollBy({ top: e.deltaY > 0 ? CELL_H : -CELL_H, behavior: 'smooth' });
+    }, { passive: false });
+  }
+  bindMouseWheel(wheelInt);
+  bindMouseWheel(wheelDec);
+
+  // ---- Direct input ----
+  const directBtn = document.getElementById('directBtn');
+  const directWrap = document.getElementById('directInputWrap');
+  const directInput = document.getElementById('directInput');
+  directBtn.addEventListener('click', () => {
+    const open = directWrap.classList.toggle('open');
+    if (open) {
+      const cv = currentValue();
+      directInput.value = cv != null ? cv.toFixed(2) : '';
+      directInput.focus();
+      directInput.select();
+    }
+  });
+  directInput.addEventListener('change', () => {
+    const v = parseFloat(directInput.value);
+    if (!isNaN(v) && v >= INT_MIN && v < INT_MAX + 1) {
+      scrollToValue(round2(v), true);
+    }
+  });
+
+  // ---- Save ----
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.addEventListener('click', () => {
+    const cv = currentValue();
+    if (cv == null) return;
+    const date = todayStr();
+    // Replace today's entry if it exists
+    const i = state.entries.findIndex(e => e.date === date);
+    const entry = { date, kg: cv, ts: Date.now() };
+    if (i >= 0) state.entries[i] = entry;
+    else state.entries.push(entry);
+    saveState(state);
+    renderAll();
+    showToast(i >= 0 ? `오늘 기록 수정됨 · ${cv.toFixed(2)}kg` : `저장됨 · ${cv.toFixed(2)}kg`);
+    // Drop animation on both wheels' selected cells
+    [wheelInt, wheelDec].forEach(w => {
+      const sel = w.querySelector('.wheel-cell.selected');
+      if (sel) { sel.classList.remove('drop'); void sel.offsetWidth; sel.classList.add('drop'); }
+    });
+  });
+
+  // ---- Stats / Goals / Recent ----
+  function renderStreak() {
+    const el = document.getElementById('streak');
+    const e = sortedEntries();
+    if (!e.length) { el.textContent = '아직 기록 없음'; return; }
+    // Consecutive days backwards from today (or from last entry if today missing)
+    const dates = new Set(e.map(x => x.date));
+    let streak = 0;
+    let cur = new Date();
+    // If today isn't logged but yesterday is, still count yesterday-back
+    if (!dates.has(todayStr())) cur.setDate(cur.getDate() - 1);
+    while (true) {
+      const pad = n => String(n).padStart(2,'0');
+      const s = `${cur.getFullYear()}-${pad(cur.getMonth()+1)}-${pad(cur.getDate())}`;
+      if (dates.has(s)) { streak++; cur.setDate(cur.getDate() - 1); }
+      else break;
+    }
+    el.innerHTML = streak > 0 ? `<strong>${streak}일째</strong> 기록 중` : `오늘 기록 안 함`;
+  }
+
+  function renderStats() {
+    const last = lastEntry();
+    const e = sortedEntries();
+
+    const setStat = (id, kgDiff, opts={}) => {
+      const el = document.getElementById(id);
+      if (kgDiff == null || isNaN(kgDiff)) { el.textContent = '–'; el.className = 'val'; return; }
+      const sign = kgDiff > 0 ? '+' : '';
+      el.textContent = `${sign}${kgDiff.toFixed(2)} kg`;
+      el.className = 'val ' + (kgDiff > 0 ? 'up' : kgDiff < 0 ? 'down' : '');
+    };
+
+    // Yesterday
+    const yday = daysAgoStr(1);
+    const ydayE = e.find(x => x.date === yday);
+    const ydayEl = document.getElementById('ydayDate');
+    ydayEl.textContent = ydayE ? `어제 ${ydayE.kg.toFixed(2)}kg` : '어제 기록 없음';
+    setStat('diffYday', last && ydayE ? round2(last.kg - ydayE.kg) : null);
+
+    // 7 days ago — use closest entry within last 7 days at oldest
+    let weekAgoE = null;
+    for (let d = 7; d <= 10; d++) {
+      const s = daysAgoStr(d);
+      weekAgoE = e.find(x => x.date === s);
+      if (weekAgoE) break;
+    }
+    setStat('diffWeek', last && weekAgoE ? round2(last.kg - weekAgoE.kg) : null);
+
+    // Start
+    const startE = e[0];
+    const startDateEl = document.getElementById('startDate');
+    startDateEl.textContent = startE ? `${startE.date.slice(5).replace('-','/')} 부터` : '시작 기록 없음';
+    setStat('diffStart', last && startE ? round2(last.kg - startE.kg) : null);
+  }
+
+  function renderGoals() {
+    const s = state.settings;
+    const last = lastEntry();
+    const cur = last ? last.kg : s.startKg;
+
+    document.getElementById('goalCur').textContent = `${cur.toFixed(2)} kg`;
+    const deltaStart = round2(cur - s.startKg);
+    const deltaEl = document.getElementById('goalDelta');
+    if (Math.abs(deltaStart) < 0.005) {
+      deltaEl.innerHTML = `시작 ${s.startKg.toFixed(2)}kg에서 <strong>변화 없음</strong>`;
+    } else {
+      const sign = deltaStart > 0 ? '+' : '';
+      deltaEl.innerHTML = `시작 ${s.startKg.toFixed(2)}kg에서 <strong>${sign}${deltaStart.toFixed(2)}kg</strong>`;
+    }
+
+    const pct = (goalKg) => {
+      const total = s.startKg - goalKg;
+      const done  = s.startKg - cur;
+      if (total === 0) return 100;
+      let p = (done / total) * 100;
+      // If goal is to lose (total > 0): clamp 0–100. If goal is to gain (total < 0), invert.
+      if (total < 0) p = (done / total) * 100;
+      return Math.max(0, Math.min(100, p));
+    };
+
+    const idealPct = pct(s.idealKg);
+    const realPct  = pct(s.realKg);
+
+    document.getElementById('idealBar').style.width = idealPct + '%';
+    document.getElementById('realBar').style.width  = realPct + '%';
+
+    const remainIdeal = round2(cur - s.idealKg);
+    const remainReal  = round2(cur - s.realKg);
+
+    document.getElementById('idealVal').innerHTML =
+      `${s.idealKg.toFixed(2)} kg<small>${remainIdeal > 0 ? `${remainIdeal.toFixed(2)}kg 남음` : remainIdeal < 0 ? '달성 🎉' : '딱 맞음'} · ${s.weeks}주</small>`;
+    document.getElementById('realVal').innerHTML =
+      `${s.realKg.toFixed(2)} kg<small>${remainReal  > 0 ? `${remainReal.toFixed(2)}kg 남음`  : remainReal  < 0 ? '달성 🎉' : '딱 맞음'} · ${s.weeks}주</small>`;
+
+    document.getElementById('startInput').value = s.startKg.toFixed(2);
+    document.getElementById('idealInput').value = s.idealKg.toFixed(2);
+    document.getElementById('realInput').value  = s.realKg.toFixed(2);
+    document.getElementById('weeksInput').value = s.weeks;
+  }
+
+  function renderChart() {
+    const wrap = document.getElementById('chartWrap');
+    const e = sortedEntries();
+    if (!e.length) {
+      wrap.innerHTML = '<div class="chart-empty">아직 기록이 없어요. 첫 기록을 남겨봐요.</div>';
+      return;
+    }
+    // Filter last 30 days window
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 29);
+    const data = e.filter(x => new Date(x.date + 'T00:00:00') >= cutoff);
+    if (data.length < 2) {
+      wrap.innerHTML = '<div class="chart-empty">기록이 하나뿐이에요. 내일 한 번 더 재 보세요.</div>';
+      return;
+    }
+    const W = 600, H = 180, P = 24;
+    const xs = data.map(d => new Date(d.date + 'T00:00:00').getTime());
+    const ys = data.map(d => d.kg);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const padY = 0.6;
+    const minY = Math.min(...ys, state.settings.idealKg, state.settings.realKg) - padY;
+    const maxY = Math.max(...ys, state.settings.startKg) + padY;
+    const sx = x => P + ((x - minX) / Math.max(1, maxX - minX)) * (W - P*2);
+    const sy = y => H - P - ((y - minY) / Math.max(0.1, maxY - minY)) * (H - P*2);
+
+    const linePath = data.map((d, i) => {
+      const x = sx(new Date(d.date + 'T00:00:00').getTime());
+      const y = sy(d.kg);
+      return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
+    }).join(' ');
+
+    const areaPath = linePath + ` L ${sx(maxX).toFixed(1)} ${H-P} L ${sx(minX).toFixed(1)} ${H-P} Z`;
+
+    const idealY = sy(state.settings.idealKg);
+    const realY  = sy(state.settings.realKg);
+
+    const dots = data.map(d => {
+      const x = sx(new Date(d.date + 'T00:00:00').getTime());
+      const y = sy(d.kg);
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.5" fill="var(--accent)" />`;
+    }).join('');
+
+    wrap.innerHTML = `
+      <svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="grad" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.20"/>
+            <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <line x1="${P}" x2="${W-P}" y1="${idealY.toFixed(1)}" y2="${idealY.toFixed(1)}"
+              stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 4" opacity="0.5"/>
+        <line x1="${P}" x2="${W-P}" y1="${realY.toFixed(1)}"  y2="${realY.toFixed(1)}"
+              stroke="var(--good)"   stroke-width="1" stroke-dasharray="3 4" opacity="0.5"/>
+        <text x="${W-P}" y="${(idealY-4).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--accent)" opacity="0.8">위시 ${state.settings.idealKg.toFixed(2)}</text>
+        <text x="${W-P}" y="${(realY-4).toFixed(1)}"  text-anchor="end" font-size="10" fill="var(--good)"   opacity="0.8">현실 ${state.settings.realKg.toFixed(2)}</text>
+        <path d="${areaPath}" fill="url(#grad)" />
+        <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        ${dots}
+      </svg>
+    `;
+  }
+
+  function renderRecent() {
+    const list = document.getElementById('recent');
+    const e = sortedEntries().slice().reverse();
+    if (!e.length) {
+      list.innerHTML = '<div style="color:var(--ink-faint);padding:20px 0;text-align:center;font-size:0.9rem">기록이 쌓이면 여기에 보여요.</div>';
+      return;
+    }
+    list.innerHTML = e.map((x, idx) => {
+      const prev = e[idx+1];
+      let diffStr = '';
+      if (prev) {
+        const d = round2(x.kg - prev.kg);
+        if (Math.abs(d) >= 0.005) {
+          const cls = d > 0 ? 'up' : 'down';
+          const sign = d > 0 ? '+' : '';
+          diffStr = `<span class="recent-diff ${cls}">${sign}${d.toFixed(2)}</span>`;
+        }
+      }
+      return `
+        <div class="recent-row">
+          <div class="recent-date">${fmtDate(x.date)}</div>
+          <div class="recent-val">${x.kg.toFixed(2)} kg ${diffStr}
+            <button class="recent-del" data-date="${x.date}" title="삭제">×</button>
+          </div>
+        </div>`;
+    }).join('');
+    list.querySelectorAll('.recent-del').forEach(b => {
+      b.addEventListener('click', () => {
+        const d = b.dataset.date;
+        if (confirm(`${d} 기록을 삭제할까요?`)) {
+          state.entries = state.entries.filter(x => x.date !== d);
+          saveState(state);
+          renderAll();
+        }
+      });
+    });
+  }
+
+  // ---- Settings editing (debounced) ----
+  let saveTimer = null;
+  function bindSettingInput(id, key) {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => {
+      const v = parseFloat(el.value);
+      if (!isNaN(v)) {
+        state.settings[key] = key === 'weeks' ? Math.max(1, Math.round(v)) : round2(v);
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => { saveState(state); }, 300);
+        renderGoals();
+        renderChart();
+      }
+    });
+  }
+  bindSettingInput('startInput', 'startKg');
+  bindSettingInput('idealInput', 'idealKg');
+  bindSettingInput('realInput',  'realKg');
+  bindSettingInput('weeksInput', 'weeks');
+
+  // ---- Toast ----
+  const toast = document.getElementById('toast');
+  let toastTimer = null;
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1600);
+  }
+
+  // ---- Export / Import / Clear ----
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `weight-log-${todayStr()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+  document.getElementById('importInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const obj = JSON.parse(text);
+      if (!Array.isArray(obj.entries)) throw new Error('invalid');
+      if (!confirm('현재 데이터를 덮어쓸까요?')) return;
+      state = { ...defaultState, ...obj, settings: { ...defaultState.settings, ...(obj.settings||{}) } };
+      saveState(state);
+      renderAll();
+      showToast('불러옴');
+    } catch {
+      alert('파일을 읽지 못했어요.');
+    }
+    e.target.value = '';
+  });
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if (!confirm('정말로 모든 기록을 삭제할까요? 되돌릴 수 없어요.')) return;
+    state = structuredClone(defaultState);
+    saveState(state);
+    renderAll();
+    showToast('초기화됨');
+  });
+
+  // ---- Render ----
+  function renderAll() {
+    renderStreak();
+    renderStats();
+    renderGoals();
+    renderChart();
+    renderRecent();
+    // Wheel date label
+    const today = new Date();
+    wheelDate.textContent = today.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
+  }
+
+  // ---- Init ----
+  intCells = buildWheelStrip(wheelInt, INT_MIN, INT_MAX, v => String(v));
+  decCells = buildWheelStrip(wheelDec, 0, 99, v => String(v).padStart(2, '0'));
+  renderAll();
+
+  // Initial wheel position: last entry, else start setting, else 70
+  const last = lastEntry();
+  const initial = round2(last ? last.kg : (state.settings.startKg || 70));
+  requestAnimationFrame(() => {
+    scrollToValue(initial, false);
+    setTimeout(() => {
+      const { intP, decP } = splitVal(initial);
+      curInt = Math.max(INT_MIN, Math.min(INT_MAX, intP));
+      curDec = decP;
+      updateStripStyles(intCells, curInt - INT_MIN);
+      updateStripStyles(decCells, curDec);
+    }, 60);
+  });
+
+  // Keyboard shortcuts (desktop nicety)
+  document.addEventListener('keydown', (e) => {
+    if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
+    // Shift+arrows scroll decimal wheel, plain arrows scroll integer
+    if (e.key === 'ArrowUp')   { e.preventDefault(); (e.shiftKey ? wheelDec : wheelInt).scrollBy({ top: -CELL_H, behavior: 'smooth' }); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); (e.shiftKey ? wheelDec : wheelInt).scrollBy({ top:  CELL_H, behavior: 'smooth' }); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); wheelInt.scrollBy({ top: -CELL_H, behavior: 'smooth' }); }
+    if (e.key === 'ArrowRight'){ e.preventDefault(); wheelInt.scrollBy({ top:  CELL_H, behavior: 'smooth' }); }
+    if (e.key === 'Enter')     { e.preventDefault(); saveBtn.click(); }
+  });
+})();
+</script>
 </body>
 </html>
