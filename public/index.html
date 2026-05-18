@@ -48,7 +48,6 @@
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro KR", "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
       font-size: 16px;
       -webkit-font-smoothing: antialiased;
-      overscroll-behavior: none;
 
       background-color: var(--bg);
       background-image: url("/bg.jpg");
@@ -56,14 +55,6 @@
       background-position: center;
       background-repeat: no-repeat;
       background-attachment: fixed;
-    }
-
-    @media (max-width: 720px) {
-
-      html,
-      body {
-        background-image: none;
-      }
     }
 
     body {
@@ -1824,10 +1815,6 @@
         // Filter last 30 days window
         const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 29);
         const data = e.filter(x => new Date(x.date + 'T00:00:00') >= cutoff);
-        if (data.length < 2) {
-          wrap.innerHTML = '<div class="chart-empty">기록이 하나뿐이에요. 내일 한 번 더 재 보세요.</div>';
-          return;
-        }
         const W = 600, H = 180, P = 24;
         const xs = data.map(d => new Date(d.date + 'T00:00:00').getTime());
         const ys = data.map(d => d.kg);
@@ -1835,7 +1822,10 @@
         const padY = 0.6;
         const minY = Math.min(...ys, state.settings.idealKg, state.settings.realKg) - padY;
         const maxY = Math.max(...ys, state.settings.startKg) + padY;
-        const sx = x => P + ((x - minX) / Math.max(1, maxX - minX)) * (W - P * 2);
+        // If only one point, center horizontally
+        const sx = x => data.length === 1
+          ? W / 2
+          : P + ((x - minX) / Math.max(1, maxX - minX)) * (W - P * 2);
         const sy = y => H - P - ((y - minY) / Math.max(0.1, maxY - minY)) * (H - P * 2);
 
         const linePath = data.map((d, i) => {
@@ -1844,7 +1834,10 @@
           return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
         }).join(' ');
 
-        const areaPath = linePath + ` L ${sx(maxX).toFixed(1)} ${H - P} L ${sx(minX).toFixed(1)} ${H - P} Z`;
+        const hasLine = data.length >= 2;
+        const areaPath = hasLine
+          ? linePath + ` L ${sx(maxX).toFixed(1)} ${H - P} L ${sx(minX).toFixed(1)} ${H - P} Z`
+          : '';
 
         const idealY = sy(state.settings.idealKg);
         const realY = sy(state.settings.realKg);
@@ -1852,7 +1845,7 @@
         const dots = data.map(d => {
           const x = sx(new Date(d.date + 'T00:00:00').getTime());
           const y = sy(d.kg);
-          return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.5" fill="var(--accent)" />`;
+          return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${data.length === 1 ? 4 : 2.5}" fill="var(--accent)" />`;
         }).join('');
 
         wrap.innerHTML = `
@@ -1869,8 +1862,8 @@
               stroke="var(--good)"   stroke-width="1" stroke-dasharray="3 4" opacity="0.5"/>
         <text x="${W - P}" y="${(idealY - 4).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--accent)" opacity="0.8">위시 ${state.settings.idealKg.toFixed(2)}</text>
         <text x="${W - P}" y="${(realY - 4).toFixed(1)}"  text-anchor="end" font-size="10" fill="var(--good)"   opacity="0.8">현실 ${state.settings.realKg.toFixed(2)}</text>
-        <path d="${areaPath}" fill="url(#grad)" />
-        <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        ${hasLine ? `<path d="${areaPath}" fill="url(#grad)" />` : ''}
+        ${hasLine ? `<path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
         ${dots}
       </svg>
     `;
@@ -2446,6 +2439,25 @@
 
       loadSyncState();
       renderSync();
+
+      // Silent auto-pull on load + when tab regains focus + every 60s
+      async function autoPull() {
+        if (!syncState.code) return;
+        try {
+          const res = await fetch(`/api/sync/${syncState.code}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          applySyncedData(data);
+          syncState.lastSynced = data.updated || Date.now();
+          saveSyncState();
+          renderSync();
+        } catch { }
+      }
+      if (syncState.code) autoPull();
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') autoPull();
+      });
+      setInterval(autoPull, 60000);
 
       // Keyboard shortcuts (desktop nicety)
       document.addEventListener('keydown', (e) => {
