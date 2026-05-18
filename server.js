@@ -6,6 +6,7 @@ const port = Number(process.env.PORT || 8080);
 const publicDir = join(process.cwd(), "public");
 const DATA_DIR = join(process.cwd(), "data");
 const ROOMS_FILE = join(DATA_DIR, "rooms.json");
+const SYNCS_FILE = join(DATA_DIR, "syncs.json");
 
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -49,6 +50,41 @@ async function persistRooms() {
     await mkdir(DATA_DIR, { recursive: true });
     await writeFile(ROOMS_FILE, JSON.stringify(rooms), "utf-8");
   } catch {}
+}
+
+// ---- Sync storage (personal cross-device backup) ----
+let syncs = {};
+
+async function loadSyncs() {
+  try {
+    const raw = await readFile(SYNCS_FILE, "utf-8");
+    syncs = JSON.parse(raw);
+  } catch {
+    syncs = {};
+  }
+}
+
+async function persistSyncs() {
+  try {
+    await mkdir(DATA_DIR, { recursive: true });
+    await writeFile(SYNCS_FILE, JSON.stringify(syncs), "utf-8");
+  } catch {}
+}
+
+// Merge entries by date — entry with the latest `ts` wins for the same date
+function mergeEntries(a = [], b = []) {
+  const map = new Map();
+  for (const e of a) {
+    if (e && e.date) map.set(e.date, e);
+  }
+  for (const e of b) {
+    if (!e || !e.date) continue;
+    const prev = map.get(e.date);
+    if (!prev || (Number(e.ts) || 0) > (Number(prev.ts) || 0)) {
+      map.set(e.date, e);
+    }
+  }
+  return Array.from(map.values()).sort((x, y) => x.date.localeCompare(y.date));
 }
 
 function genCode() {
@@ -123,10 +159,62 @@ async function handleApi(req, res, pathname) {
     }
   }
 
+  // POST /api/sync  →  create new sync code
+  if (pathname === "/api/sync" && req.method === "POST") {
+    let code;
+    let attempts = 0;
+    do { code = genCode(); attempts++; } while (syncs[code] && attempts < 20);
+    syncs[code] = {
+      created: Date.now(),
+      updated: Date.now(),
+      entries: [],
+      settings: {},
+    };
+    persistSyncs();
+    return json(res, 200, { code });
+  }
+
+  if (parts[1] === "api" && parts[2] === "sync" && parts[3]) {
+    const code = parts[3].toUpperCase();
+
+    // GET /api/sync/:code  →  fetch synced data
+    if (req.method === "GET") {
+      const sync = syncs[code];
+      if (!sync) return json(res, 404, { error: "동기화 코드를 찾을 수 없어요" });
+      return json(res, 200, {
+        entries: sync.entries || [],
+        settings: sync.settings || {},
+        updated: sync.updated,
+      });
+    }
+
+    // PUT /api/sync/:code  →  merge client data, return merged result
+    if (req.method === "PUT") {
+      let sync = syncs[code];
+      if (!sync) {
+        // Auto-create if missing (allows manual code entry on fresh server)
+        sync = syncs[code] = { created: Date.now(), updated: Date.now(), entries: [], settings: {} };
+      }
+      const body = await readBody(req);
+      const incomingEntries = Array.isArray(body.entries) ? body.entries : [];
+      const incomingSettings = body.settings && typeof body.settings === "object" ? body.settings : null;
+      sync.entries = mergeEntries(sync.entries, incomingEntries);
+      if (incomingSettings) sync.settings = { ...sync.settings, ...incomingSettings };
+      sync.updated = Date.now();
+      persistSyncs();
+      return json(res, 200, {
+        entries: sync.entries,
+        settings: sync.settings,
+        updated: sync.updated,
+      });
+    }
+  }
+
   json(res, 404, { error: "not found" });
 }
 
 await loadRooms();
+await loadSyncs();
 
 createServer(async (req, res) => {
   try {
