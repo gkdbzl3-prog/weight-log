@@ -13,10 +13,21 @@ const types = {
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
 };
 
 function resolvePath(url) {
-  const pathname = new URL(url, "http://localhost").pathname;
+  let pathname;
+  try {
+    pathname = decodeURIComponent(new URL(url, "http://localhost").pathname);
+  } catch {
+    pathname = new URL(url, "http://localhost").pathname;
+  }
   const safePath = normalize(pathname).replace(/^(\.\.[/\\])+/, "");
   return join(publicDir, safePath === "/" ? "index.html" : safePath);
 }
@@ -104,6 +115,7 @@ async function handleApi(req, res, pathname) {
       room[action] = {
         name: String(body.name || "").slice(0, 20),
         delta: Number(body.delta) || 0,
+        status: String(body.status || "").slice(0, 60),
         updated: Date.now(),
       };
       persistRooms();
