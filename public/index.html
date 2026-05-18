@@ -1181,32 +1181,38 @@
       color: var(--accent);
     }
 
-    .sync-last {
-      font-size: 0.75rem;
+    .sync-auto-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: var(--bg);
+      border-radius: 12px;
+      font-size: 0.82rem;
       color: var(--ink-soft);
-      margin-bottom: 12px;
-      text-align: center;
+      font-weight: 500;
     }
 
-    .sync-last .dot {
-      display: inline-block;
-      width: 6px;
-      height: 6px;
+    .sync-auto-dot {
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background: var(--good);
-      margin-right: 5px;
-      transform: translateY(-1px);
+      box-shadow: 0 0 0 0 var(--good);
+      animation: syncPulse 2s infinite;
+      flex-shrink: 0;
     }
 
-    .sync-room-btns {
-      display: flex;
-      gap: 8px;
+    @keyframes syncPulse {
+      0%   { box-shadow: 0 0 0 0 rgba(78, 141, 108, 0.6); }
+      70%  { box-shadow: 0 0 0 8px rgba(78, 141, 108, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(78, 141, 108, 0); }
     }
 
-    .sync-room-btns .btn {
-      flex: 1;
-      padding: 10px 14px;
-      font-size: 0.88rem;
+    #syncLast {
+      color: var(--ink-faint);
+      font-weight: 400;
     }
 
     .sync-disconnect {
@@ -1493,10 +1499,9 @@
           </div>
           <button class="btn-copy" id="copySyncBtn">복사</button>
         </div>
-        <div class="sync-last" id="syncLast"><span class="dot"></span>준비됨</div>
-        <div class="sync-room-btns">
-          <button class="btn btn-ghost" id="pullSyncBtn">↓ 가져오기</button>
-          <button class="btn btn-primary" id="pushSyncBtn">↑ 올리기</button>
+        <div class="sync-auto-status">
+          <span class="sync-auto-dot"></span>
+          <span>자동 동기화 중 · <span id="syncLast">방금</span></span>
         </div>
         <button class="sync-disconnect" id="disconnectSyncBtn">연결 해제</button>
       </div>
@@ -2326,10 +2331,14 @@
       }
 
       function formatSyncTime(ts) {
-        if (!ts) return '아직 동기화 전';
+        if (!ts) return '준비 중';
+        const diff = Date.now() - ts;
+        if (diff < 5000) return '방금';
+        if (diff < 60000) return `${Math.floor(diff / 1000)}초 전`;
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}분 전`;
         const d = new Date(ts);
-        if (Number.isNaN(d.getTime())) return '아직 동기화 전';
-        return `${d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} ${d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`;
+        if (Number.isNaN(d.getTime())) return '준비 중';
+        return `${d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`;
       }
 
       function renderSync() {
@@ -2342,12 +2351,11 @@
           setup.style.display = 'none';
           connected.style.display = 'block';
           codeEl.textContent = syncState.code;
-          lastEl.innerHTML = `<span class="dot"></span>${formatSyncTime(syncState.lastSynced)}`;
+          lastEl.textContent = formatSyncTime(syncState.lastSynced);
         } else {
           setup.style.display = 'block';
           connected.style.display = 'none';
           codeEl.textContent = '------';
-          lastEl.innerHTML = '<span class="dot"></span>준비됨';
         }
       }
 
@@ -2438,8 +2446,6 @@
 
       document.getElementById('createSyncBtn').addEventListener('click', createSyncCode);
       document.getElementById('connectSyncBtn').addEventListener('click', connectSyncCode);
-      document.getElementById('pullSyncBtn').addEventListener('click', pullSyncData);
-      document.getElementById('pushSyncBtn').addEventListener('click', () => pushSyncData());
       document.getElementById('copySyncBtn').addEventListener('click', () => {
         navigator.clipboard?.writeText(syncState.code).then(() => showToast('동기화 코드 복사됨!'));
       });
@@ -2477,6 +2483,8 @@
         if (document.visibilityState === 'visible') autoPull();
       });
       setInterval(autoPull, 60000);
+      // Refresh just the "방금 / N분 전" label every 30s so it stays current
+      setInterval(() => { if (syncState.code) renderSync(); }, 30000);
 
       // Keyboard shortcuts (desktop nicety)
       document.addEventListener('keydown', (e) => {
