@@ -143,15 +143,26 @@ async function handleApi(req, res, pathname) {
       return json(res, 200, { slot });
     }
 
-    // PUT /api/room/:code/slot1|slot2  →  update member delta
+    // PUT /api/room/:code/slot1|slot2  →  update member delta (+ optionally append a new status)
     if ((action === "slot1" || action === "slot2") && req.method === "PUT") {
       const room = rooms[code];
       if (!room) return json(res, 404, { error: "방 없음" });
       const body = await readBody(req);
+      const existing = room[action] || {};
+      // Migrate legacy single-status field, if present
+      let statuses = Array.isArray(existing.statuses) ? existing.statuses.slice() : [];
+      if (!statuses.length && existing.status) {
+        statuses.push({ text: String(existing.status).slice(0, 60), ts: existing.updated || Date.now() });
+      }
+      const newStatus = typeof body.status === "string" ? body.status.trim().slice(0, 60) : "";
+      if (newStatus) {
+        statuses.push({ text: newStatus, ts: Date.now() });
+        if (statuses.length > 10) statuses = statuses.slice(-10);
+      }
       room[action] = {
-        name: String(body.name || "").slice(0, 20),
-        delta: Number(body.delta) || 0,
-        status: String(body.status || "").slice(0, 60),
+        name: String(body.name || existing.name || "").slice(0, 20),
+        delta: typeof body.delta === "number" ? body.delta : (existing.delta || 0),
+        statuses,
         updated: Date.now(),
       };
       persistRooms();
