@@ -195,6 +195,7 @@ async function handleApi(req, res, pathname) {
       return json(res, 200, {
         entries: sync.entries || [],
         settings: sync.settings || {},
+        partnerRoom: sync.partnerRoom || null,
         updated: sync.updated,
       });
     }
@@ -211,11 +212,21 @@ async function handleApi(req, res, pathname) {
       const incomingSettings = body.settings && typeof body.settings === "object" ? body.settings : null;
       sync.entries = mergeEntries(sync.entries, incomingEntries);
       if (incomingSettings) sync.settings = { ...sync.settings, ...incomingSettings };
+      if ("partnerRoom" in body) {
+        sync.partnerRoom = body.partnerRoom && typeof body.partnerRoom === "object"
+          ? {
+              code: String(body.partnerRoom.code || "").slice(0, 12),
+              slot: String(body.partnerRoom.slot || "").slice(0, 12),
+              name: String(body.partnerRoom.name || "").slice(0, 20),
+            }
+          : null;
+      }
       sync.updated = Date.now();
       persistSyncs();
       return json(res, 200, {
         entries: sync.entries,
         settings: sync.settings,
+        partnerRoom: sync.partnerRoom || null,
         updated: sync.updated,
       });
     }

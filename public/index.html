@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <meta name="theme-color" content="#fbfaf7" />
-  <title>오늘 체중</title>
+  <title>Weight-room</title>
   <style>
     :root {
       color-scheme: light;
@@ -718,6 +718,66 @@
     }
 
     /* Goal headline */
+    /* Period countdown banner */
+    .period-banner {
+      background: linear-gradient(135deg, var(--accent-soft), transparent);
+      border: 1px solid var(--accent);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .period-banner-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .period-banner-emoji {
+      font-size: 1.6rem;
+      line-height: 1;
+    }
+
+    .period-banner-title {
+      font-weight: 700;
+      color: var(--ink);
+      font-size: 0.98rem;
+    }
+
+    .period-banner-sub {
+      font-size: 0.8rem;
+      color: var(--ink-soft);
+      line-height: 1.5;
+    }
+
+    .period-banner-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .period-banner-actions button {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--ink);
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .period-banner-actions button:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
     .goal-summary {
       margin-bottom: 14px;
       padding-bottom: 12px;
@@ -990,7 +1050,6 @@
 
     .partner-feed-text {
       color: var(--ink-soft);
-      font-style: italic;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -1390,6 +1449,18 @@
 
     <div class="card goal-card">
       <h3 class="card-title">오늘</h3>
+
+      <div class="period-banner" id="periodBanner" style="display:none">
+        <div class="period-banner-head">
+          <span class="period-banner-emoji">🎉</span>
+          <div class="period-banner-title" id="periodBannerTitle">기간 완료!</div>
+        </div>
+        <div class="period-banner-sub" id="periodBannerSub"></div>
+        <div class="period-banner-actions">
+          <button id="extendPeriodBtn">기간 +4주 연장</button>
+          <button id="restartPeriodBtn">오늘부터 새로 시작</button>
+        </div>
+      </div>
 
       <div class="goal-summary">
         <div class="head">
@@ -1798,10 +1869,58 @@
         setStat('diffStart', last && startE ? round2(last.kg - startE.kg) : null);
       }
 
+      function getPeriodInfo() {
+        const s = state.settings;
+        const first = sortedEntries()[0];
+        if (!s.weeks || (!s.startDate && !first)) return null;
+        const startStr = s.startDate || first.date;
+        const start = new Date(startStr + 'T00:00:00');
+        const target = new Date(start);
+        target.setDate(target.getDate() + s.weeks * 7);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        target.setHours(0, 0, 0, 0);
+        const daysLeft = Math.round((target - today) / 86400000);
+        return { startStr, target, daysLeft, completed: daysLeft <= 0 };
+      }
+
+      function periodLabel(info) {
+        if (!info) return `${state.settings.weeks}주`;
+        const n = info.daysLeft;
+        if (n > 1) return `D-${n}`;
+        if (n === 1) return 'D-1';
+        if (n === 0) return 'D-DAY 🎯';
+        return `+${-n}일 초과`;
+      }
+
+      function renderPeriodBanner(info, cur) {
+        const banner = document.getElementById('periodBanner');
+        if (!info || !info.completed) {
+          banner.style.display = 'none';
+          return;
+        }
+        const s = state.settings;
+        const delta = round2(cur - s.startKg);
+        const sign = delta > 0 ? '+' : '';
+        const idealHit = cur <= s.idealKg;
+        const realHit = cur <= s.realKg;
+        const status = idealHit ? '위시 목표 달성! 🏆' : realHit ? '현실 목표 달성! 👏' : '수고했어요 💪';
+        const overshoot = info.daysLeft < 0 ? ` · ${-info.daysLeft}일 초과` : '';
+        document.getElementById('periodBannerTitle').textContent =
+          `${s.weeks}주 기간이 끝났어요!${overshoot}`;
+        document.getElementById('periodBannerSub').innerHTML =
+          `시작 ${s.startKg.toFixed(2)}kg → 현재 <strong>${cur.toFixed(2)}kg</strong> (${sign}${delta.toFixed(2)}kg) · ${status}`;
+        banner.style.display = 'flex';
+      }
+
       function renderGoals() {
         const s = state.settings;
         const last = lastEntry();
         const cur = last ? last.kg : s.startKg;
+        const period = getPeriodInfo();
+        const pLabel = periodLabel(period);
+
+        renderPeriodBanner(period, cur);
 
         document.getElementById('goalCur').textContent = `${cur.toFixed(2)} kg`;
         const deltaStart = round2(cur - s.startKg);
@@ -1833,9 +1952,9 @@
         const remainReal = round2(cur - s.realKg);
 
         document.getElementById('idealVal').innerHTML =
-          `${s.idealKg.toFixed(2)} kg<small>${remainIdeal > 0 ? `${remainIdeal.toFixed(2)}kg 남음` : remainIdeal < 0 ? '달성 🎉' : '딱 맞음'} · ${s.weeks}주</small>`;
+          `${s.idealKg.toFixed(2)} kg<small>${remainIdeal > 0 ? `${remainIdeal.toFixed(2)}kg 남음` : remainIdeal < 0 ? '달성 🎉' : '딱 맞음'} · ${pLabel}</small>`;
         document.getElementById('realVal').innerHTML =
-          `${s.realKg.toFixed(2)} kg<small>${remainReal > 0 ? `${remainReal.toFixed(2)}kg 남음` : remainReal < 0 ? '달성 🎉' : '딱 맞음'} · ${s.weeks}주</small>`;
+          `${s.realKg.toFixed(2)} kg<small>${remainReal > 0 ? `${remainReal.toFixed(2)}kg 남음` : remainReal < 0 ? '달성 🎉' : '딱 맞음'} · ${pLabel}</small>`;
 
         const setSplit = (intId, decId, value) => {
           const intP = Math.floor(value);
@@ -2046,6 +2165,25 @@
       bindSplitInput('realInt', 'realDec', 'realKg');
       bindSettingInput('weeksInput', 'weeks');
 
+      document.getElementById('extendPeriodBtn').addEventListener('click', () => {
+        state.settings.weeks = (state.settings.weeks || 8) + 4;
+        saveState(state);
+        renderGoals();
+        renderChart();
+        scheduleSyncPush();
+        showToast(`기간 +4주 연장 (총 ${state.settings.weeks}주)`);
+      });
+
+      document.getElementById('restartPeriodBtn').addEventListener('click', () => {
+        if (!confirm('오늘부터 새 기간을 시작할까요? 이전 기록은 그대로 남아 있어요.')) return;
+        state.settings.startDate = todayStr();
+        saveState(state);
+        renderGoals();
+        renderChart();
+        scheduleSyncPush();
+        showToast('새 기간이 시작됐어요!');
+      });
+
       // ---- Toast ----
       const toast = document.getElementById('toast');
       let toastTimer = null;
@@ -2144,6 +2282,7 @@
 
       function savePartnerState() {
         localStorage.setItem(PARTNER_KEY, JSON.stringify(partnerState));
+        if (typeof scheduleSyncPush === 'function') scheduleSyncPush();
       }
 
       function myDelta() {
@@ -2210,7 +2349,7 @@
           const feedHtml = recent.length
             ? recent.map((s) =>
               `<div class="partner-feed-item">
-                <span class="partner-feed-text">"${escapeHtml(s.text || '')}"</span>
+                <span class="partner-feed-text">${escapeHtml(s.text || '')}</span>
                 <span class="partner-feed-time">${feedTimeAgo(s.ts)}</span>
               </div>`
             ).join('')
@@ -2346,6 +2485,9 @@
         return {
           entries: sortedEntries(),
           settings: state.settings,
+          partnerRoom: partnerState.code
+            ? { code: partnerState.code, slot: partnerState.slot, name: partnerState.name }
+            : null,
         };
       }
 
@@ -2374,6 +2516,17 @@
         }
         saveState(state);
         renderAll();
+        // Restore partner-room membership on this device if it's not set yet
+        if (data.partnerRoom && data.partnerRoom.code && !partnerState.code) {
+          partnerState = {
+            ...partnerState,
+            code: data.partnerRoom.code,
+            slot: data.partnerRoom.slot,
+            name: data.partnerRoom.name || partnerState.name,
+          };
+          localStorage.setItem(PARTNER_KEY, JSON.stringify(partnerState));
+          renderPartner();
+        }
       }
 
       function formatSyncTime(ts) {
