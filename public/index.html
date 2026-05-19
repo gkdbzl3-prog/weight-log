@@ -2529,30 +2529,26 @@
 
       // For OWN statuses, recompute delta using the closest weight entry to status time.
       // Falls back to stored s.delta if no entries to match.
-      // For own statuses, show the change between the closest weight record and the one before it
-      // (matches the diff shown in the records list — not the cumulative delta from start).
+      // For own statuses, show the cumulative change from the first recorded entry
+      // (matches the top total's baseline so all numbers are on the same scale).
       function deltaForOwnStatus(statusTs) {
         const entries = sortedEntries();
         if (!entries.length || !statusTs) return null;
-        let closestIdx = -1;
+        let closest = null;
         let minDiff = Infinity;
-        for (let i = 0; i < entries.length; i++) {
-          const t = Number(entries[i].ts) || 0;
+        for (const e of entries) {
+          const t = Number(e.ts) || 0;
           if (!t) continue;
           const diff = Math.abs(t - statusTs);
           if (diff < minDiff) {
             minDiff = diff;
-            closestIdx = i;
+            closest = e;
           }
         }
-        if (closestIdx === -1) return null;
-        const closest = entries[closestIdx];
-        const prev = closestIdx > 0 ? entries[closestIdx - 1] : null;
-        if (prev && typeof prev.kg === 'number') {
-          return round2(closest.kg - prev.kg);
-        }
-        // No previous entry — fall back to absolute delta from start
-        return round2(closest.kg - state.settings.startKg);
+        if (!closest) return null;
+        const first = entries[0];
+        const baseline = (first && typeof first.kg === 'number') ? first.kg : state.settings.startKg;
+        return round2(closest.kg - baseline);
       }
 
       function memberNameKey(member) {
