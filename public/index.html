@@ -1072,6 +1072,46 @@
       opacity: 0.7;
     }
 
+    /* 내 닉네임 편집 */
+    .my-nickname-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      background: var(--bg);
+      border-radius: 12px;
+      margin-bottom: 10px;
+    }
+
+    .my-nickname-label {
+      font-size: 0.72rem;
+      color: var(--ink-faint);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+
+    .my-nickname-wrap input {
+      flex: 1;
+      min-width: 0;
+      padding: 6px 10px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--ink);
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: inherit;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .my-nickname-wrap input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--surface);
+    }
+
     /* 내 한마디 입력 */
     .my-status-wrap {
       margin-bottom: 12px;
@@ -1561,6 +1601,10 @@
           <span class="room-code-label">방 코드</span>
           <span class="room-code" id="roomCodeDisplay">------</span>
           <button class="btn-copy" id="copyCodeBtn">복사</button>
+        </div>
+        <div class="my-nickname-wrap">
+          <span class="my-nickname-label">내 닉네임</span>
+          <input type="text" id="myNicknameInput" maxlength="10" placeholder="익명" />
         </div>
         <div class="my-status-wrap">
           <input type="text" id="myStatusInput" placeholder="한마디 남기기 💬 (Enter로 게시)" maxlength="40" />
@@ -2367,7 +2411,7 @@
           const rawName = m.name || '';
           const displayName = isMe
             ? (rawName || '익명')
-            : (rawName && rawName !== '나' ? rawName : '친구');
+            : (rawName && rawName !== '나' ? rawName : '익명');
           const name = escapeHtml(displayName);
           // Backwards-compat: legacy single status string
           let statuses = Array.isArray(m.statuses) ? m.statuses : [];
@@ -2422,6 +2466,10 @@
           setup.style.display = 'none';
           room.style.display = 'block';
           document.getElementById('roomCodeDisplay').textContent = partnerState.code;
+          const nickEl = document.getElementById('myNicknameInput');
+          if (nickEl && document.activeElement !== nickEl) {
+            nickEl.value = partnerState.name && partnerState.name !== '나' ? partnerState.name : '';
+          }
           fetchPartnerData();
           startPolling();
         } else {
@@ -2513,6 +2561,24 @@
           e.preventDefault();
           saveMyStatus();
         }
+      });
+
+      const myNicknameInput = document.getElementById('myNicknameInput');
+
+      async function saveMyNickname() {
+        const v = myNicknameInput.value.trim().slice(0, 10);
+        const newName = v || '익명';
+        if (newName === partnerState.name) return;
+        partnerState.name = newName;
+        savePartnerState();
+        await pushSelf();
+        await fetchPartnerData();
+        showToast(`닉네임: ${newName}`);
+      }
+
+      myNicknameInput.addEventListener('blur', saveMyNickname);
+      myNicknameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); myNicknameInput.blur(); }
       });
 
       loadPartnerState();
