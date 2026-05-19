@@ -2578,8 +2578,8 @@
           const safeDisplayDelta = Number.isFinite(displayDelta) ? displayDelta : 0;
           const sign = safeDisplayDelta > 0 ? '+' : '';
           const cls = safeDisplayDelta > 0 ? 'up' : safeDisplayDelta < 0 ? 'down' : '';
-          // Newest first, up to 3
-          const recent = statuses.slice().reverse().slice(0, 3);
+          // With column-reverse, reversed data makes newest messages appear at the bottom.
+          const recent = statuses.slice().reverse();
           const feedHtml = recent.length
             ? recent.map((s) => {
               // For own statuses, recompute delta from the closest local weight entry.
