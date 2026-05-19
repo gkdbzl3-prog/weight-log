@@ -2724,6 +2724,7 @@
       const SYNC_KEY = 'weightLog.sync.v1';
       let syncState = { code: null, lastSynced: null };
       let syncPushTimer = null;
+      let syncPushPending = false;
 
       function loadSyncState() {
         try {
@@ -2767,7 +2768,15 @@
       function applySyncedData(data) {
         if (!data || typeof data !== 'object') return;
         if (Array.isArray(data.entries)) {
-          state.entries = mergeSyncedEntries(state.entries, data.entries);
+          // Trust the server snapshot so deletions actually propagate.
+          // The syncPushPending guard prevents this from clobbering unsynced local saves.
+          state.entries = data.entries.slice().sort((a, b) => {
+            const t1 = Number(a.ts) || 0;
+            const t2 = Number(b.ts) || 0;
+            if (t1 !== t2) return t1 - t2;
+            return (a.date || '').localeCompare(b.date || '');
+          });
+          saveState(state);
         }
         if (data.settings && typeof data.settings === 'object') {
           state.settings = { ...state.settings, ...data.settings };
@@ -2905,8 +2914,9 @@
       function scheduleSyncPush() {
         if (!syncState.code) return;
         clearTimeout(syncPushTimer);
+        syncPushPending = true;
         syncPushTimer = setTimeout(() => {
-          pushSyncData({ silent: true });
+          pushSyncData({ silent: true }).finally(() => { syncPushPending = false; });
         }, 900);
       }
 
@@ -2934,6 +2944,8 @@
       // Silent auto-pull on load + when tab regains focus + every 60s
       async function autoPull() {
         if (!syncState.code) return;
+        // Don't pull while a local push is in flight — it would overwrite unsynced changes.
+        if (syncPushPending) return;
         try {
           const res = await fetch(`/api/sync/${syncState.code}`);
           if (!res.ok) return;
