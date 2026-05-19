@@ -61,7 +61,10 @@ async function readDoc(collection, id) {
 }
 
 async function writeDoc(collection, id, data) {
-  const res = await fetch(docUrl(collection, id), {
+  // updateMask=payload tells Firestore explicitly: only the `payload` field is being updated.
+  // Without it, behavior on missing-doc PATCH is less predictable.
+  const url = `${docUrl(collection, id)}&updateMask.fieldPaths=payload`;
+  const res = await fetch(url, {
     method: "PATCH",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(encodeDoc(data)),
@@ -157,7 +160,11 @@ async function handleApi(req, res, pathname) {
       }
       const newStatus = typeof body.status === "string" ? body.status.trim().slice(0, 60) : "";
       if (newStatus) {
-        statuses.push({ text: newStatus, ts: Date.now() });
+        statuses.push({
+          text: newStatus,
+          ts: Date.now(),
+          delta: typeof body.delta === "number" ? body.delta : null,
+        });
         if (statuses.length > 10) statuses = statuses.slice(-10);
       }
       room[action] = {

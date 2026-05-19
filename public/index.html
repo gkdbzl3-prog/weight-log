@@ -2345,14 +2345,20 @@
           const m = data[s];
           if (!m) return null;
           const isMe = s === partnerState.slot;
-          const sign = m.delta > 0 ? '+' : '';
-          const cls = m.delta > 0 ? 'up' : m.delta < 0 ? 'down' : '';
           const name = escapeHtml(m.name || '');
           // Backwards-compat: legacy single status string
           let statuses = Array.isArray(m.statuses) ? m.statuses : [];
           if (!statuses.length && m.status) {
             statuses = [{ text: m.status, ts: m.updated || Date.now() }];
           }
+          // Display delta = the delta captured at the time of the most recent status
+          // Falls back to current delta if no status entry has a frozen delta yet
+          const lastStatus = statuses.length ? statuses[statuses.length - 1] : null;
+          const displayDelta = (lastStatus && typeof lastStatus.delta === 'number')
+            ? lastStatus.delta
+            : m.delta;
+          const sign = displayDelta > 0 ? '+' : '';
+          const cls = displayDelta > 0 ? 'up' : displayDelta < 0 ? 'down' : '';
           // Newest first, up to 3
           const recent = statuses.slice().reverse().slice(0, 3);
           const feedHtml = recent.length
@@ -2367,7 +2373,7 @@
           return `<div class="partner-row">
         <div class="partner-row-head">
           <span class="partner-name">${name}${isMe ? ' (나)' : ''}</span>
-          <span class="partner-delta ${cls}">${sign}${m.delta.toFixed(2)} kg</span>
+          <span class="partner-delta ${cls}">${sign}${displayDelta.toFixed(2)} kg</span>
         </div>
         <div class="partner-feed">${feedHtml}</div>
       </div>`;
