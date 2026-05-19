@@ -161,7 +161,7 @@ function mergeMemberRecords(a = {}, b = {}) {
   const statuses = [...aStatuses, ...bStatuses]
     .filter((status) => status && status.text)
     .sort((x, y) => (Number(x.ts) || 0) - (Number(y.ts) || 0))
-    .slice(-10);
+    .slice(-100);
   const newer = (Number(b.updated) || 0) >= (Number(a.updated) || 0) ? b : a;
   return {
     ...a,
@@ -311,7 +311,7 @@ async function handleApi(req, res, pathname) {
             ts: Number(s.ts) || Date.now(),
             delta: typeof s.delta === "number" ? s.delta : null,
           }))
-          .slice(-10);
+          .slice(-100);
       }
       const newStatus = typeof body.status === "string" ? body.status.trim().slice(0, 80) : "";
       if (newStatus) {
@@ -320,7 +320,7 @@ async function handleApi(req, res, pathname) {
           ts: Date.now(),
           delta: typeof body.delta === "number" ? body.delta : null,
         });
-        if (statuses.length > 10) statuses = statuses.slice(-10);
+        if (statuses.length > 100) statuses = statuses.slice(-100);
       }
       members[action] = {
         name: String(body.name || existing.name || "").slice(0, 20),

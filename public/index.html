@@ -1045,6 +1045,29 @@
       gap: 4px;
       padding-top: 6px;
       border-top: 1px dashed var(--line);
+      max-height: 360px;
+      overflow-y: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .partner-feed::-webkit-scrollbar { display: none; }
+
+    .partner-feed-divider {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink-faint);
+      font-size: 0.72rem;
+      font-weight: 600;
+      margin: 6px 0 2px;
+      letter-spacing: 0.04em;
+    }
+    .partner-feed-divider::before,
+    .partner-feed-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--line);
     }
 
     .partner-feed-item {
@@ -2684,30 +2707,54 @@
           const safeDisplayDelta = Number.isFinite(displayDelta) ? displayDelta : 0;
           const sign = safeDisplayDelta > 0 ? '+' : '';
           const cls = safeDisplayDelta > 0 ? 'up' : safeDisplayDelta < 0 ? 'down' : '';
-          // With column-reverse, reversed data makes newest messages appear at the bottom.
+          // With column-reverse, the DOM-first item appears at the visual bottom.
+          // We iterate newest-first and emit a "5월" divider AFTER each month's last item
+          // in DOM order, so visually each divider sits at the top of its month group.
           const recent = statuses.slice().reverse();
-          const feedHtml = recent.length
-            ? recent.map((s) => {
-              // For own statuses, recompute delta from the closest local weight entry.
-              // For others, use the delta as stored on the server.
-              let sd = (typeof s.delta === 'number') ? s.delta : null;
-              if (isMe) {
-                const recomputed = deltaForOwnStatus(s.ts);
-                if (recomputed !== null) sd = recomputed;
+          const monthKeyOf = (ts) => {
+            const d = new Date(Number(ts) || 0);
+            return d.getFullYear() + '-' + (d.getMonth() + 1);
+          };
+          const monthLabelOf = (ts) => {
+            const d = new Date(Number(ts) || 0);
+            return (d.getMonth() + 1) + '월';
+          };
+          const renderStatusItem = (s) => {
+            let sd = (typeof s.delta === 'number') ? s.delta : null;
+            if (isMe) {
+              const recomputed = deltaForOwnStatus(s.ts);
+              if (recomputed !== null) sd = recomputed;
+            }
+            let deltaHtml = '';
+            if (sd !== null && Math.abs(sd) < 50) {
+              const sign = sd > 0 ? '+' : '';
+              const cl = sd > 0 ? 'up' : sd < 0 ? 'down' : '';
+              deltaHtml = `<span class="partner-feed-delta ${cl}">${sign}${sd.toFixed(2)}</span>`;
+            }
+            return `<div class="partner-feed-item">
+              <span class="partner-feed-text">${escapeHtml(s.text || '')}</span>
+              ${deltaHtml}
+              <span class="partner-feed-time">${feedTimeAgo(s.ts)}</span>
+            </div>`;
+          };
+          let feedHtml;
+          if (!recent.length) {
+            feedHtml = `<div class="partner-feed-empty">${isMe ? '한마디 남겨봐요' : '아직 조용해요'}</div>`;
+          } else {
+            const parts = [];
+            for (let i = 0; i < recent.length; i++) {
+              const s = recent[i];
+              const prev = i > 0 ? recent[i - 1] : null;
+              // When transitioning to a different (older) month, insert the divider for the PREVIOUS month
+              if (prev && monthKeyOf(prev.ts) !== monthKeyOf(s.ts)) {
+                parts.push(`<div class="partner-feed-divider">${monthLabelOf(prev.ts)}</div>`);
               }
-              let deltaHtml = '';
-              if (sd !== null && Math.abs(sd) < 50) {
-                const sign = sd > 0 ? '+' : '';
-                const cl = sd > 0 ? 'up' : sd < 0 ? 'down' : '';
-                deltaHtml = `<span class="partner-feed-delta ${cl}">${sign}${sd.toFixed(2)}</span>`;
-              }
-              return `<div class="partner-feed-item">
-                <span class="partner-feed-text">${escapeHtml(s.text || '')}</span>
-                ${deltaHtml}
-                <span class="partner-feed-time">${feedTimeAgo(s.ts)}</span>
-              </div>`;
-            }).join('')
-            : `<div class="partner-feed-empty">${isMe ? '한마디 남겨봐요' : '아직 조용해요'}</div>`;
+              parts.push(renderStatusItem(s));
+            }
+            // Closing divider for the oldest month (visually sits at the very top)
+            parts.push(`<div class="partner-feed-divider">${monthLabelOf(recent[recent.length - 1].ts)}</div>`);
+            feedHtml = parts.join('');
+          }
 
           return `<div class="partner-row">
         <div class="partner-row-head">
