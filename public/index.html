@@ -1054,11 +1054,13 @@
 
     .partner-feed-text {
       color: var(--ink-soft);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
       flex: 1;
       min-width: 0;
+      word-break: break-word;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     .partner-feed-time {
@@ -1621,7 +1623,7 @@
           <input type="text" id="myNicknameInput" maxlength="10" placeholder="익명" />
         </div>
         <div class="my-status-wrap">
-          <input type="text" id="myStatusInput" placeholder="한마디 남기기 💬 (Enter로 게시)" maxlength="40" />
+          <input type="text" id="myStatusInput" placeholder="한마디 남기기 💬 (Enter로 게시)" maxlength="80" />
         </div>
         <div class="partner-table-header">
           <span>시작 대비 변화량</span>
@@ -1853,8 +1855,30 @@
       });
       directInput.addEventListener('change', () => {
         const v = parseFloat(directInput.value);
-        if (!isNaN(v) && v >= INT_MIN && v < INT_MAX + 1) {
-          scrollToValue(round2(v), true);
+        if (isNaN(v) || v < INT_MIN || v >= INT_MAX + 1) return;
+        const rounded = round2(v);
+        scrollToValue(rounded, true);
+        // Direct input should also record the entry — no need to click 기록 again.
+        const now = Date.now();
+        if (now - lastSaveTs < 1500) return;
+        const last = state.entries[state.entries.length - 1];
+        if (last && Math.abs((last.kg || 0) - rounded) < 0.001 && (now - (Number(last.ts) || 0)) < 3000) return;
+        lastSaveTs = now;
+        const entry = { date: todayStr(), kg: rounded, ts: now };
+        state.entries.push(entry);
+        saveState(state);
+        renderAll();
+        pushSelf();
+        scheduleSyncPush();
+        showToast(`기록됨 · ${rounded.toFixed(2)}kg`);
+        directInput.value = '';
+        directWrap.classList.remove('open');
+      });
+
+      directInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          directInput.blur();  // triggers the change handler above
         }
       });
 
@@ -2768,7 +2792,7 @@
 
       async function saveMyStatus() {
         if (statusSaveInFlight) return;
-        const v = myStatusInput.value.trim().slice(0, 40);
+        const v = myStatusInput.value.trim().slice(0, 80);
         if (!v) return;
         if (!partnerState.code) {
           showToast('먼저 친구방을 만들거나 참여해 주세요.');

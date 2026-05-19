@@ -292,10 +292,10 @@ async function handleApi(req, res, pathname) {
       // Migrate legacy single-status field, if present
       let statuses = Array.isArray(existing.statuses) ? existing.statuses.slice() : [];
       if (!statuses.length && existing.status) {
-        statuses.push({ text: String(existing.status).slice(0, 60), ts: existing.updated || Date.now() });
+        statuses.push({ text: String(existing.status).slice(0, 80), ts: existing.updated || Date.now() });
       }
       const body = await readBody(req);
-      const newStatus = typeof body.status === "string" ? body.status.trim().slice(0, 60) : "";
+      const newStatus = typeof body.status === "string" ? body.status.trim().slice(0, 80) : "";
       if (newStatus) {
         statuses.push({
           text: newStatus,
