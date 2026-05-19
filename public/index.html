@@ -2410,9 +2410,14 @@
       }
 
       function myDelta() {
-        const last = lastEntry();
-        if (!last) return null;
-        return round2(last.kg - state.settings.startKg);
+        const sorted = sortedEntries();
+        if (!sorted.length) return null;
+        const last = sorted[sorted.length - 1];
+        // Use the first recorded entry as the baseline (matches the "시작 대비" stat).
+        // Falls back to settings.startKg only if there are no entries to anchor from.
+        const first = sorted[0];
+        const baseline = (first && typeof first.kg === 'number') ? first.kg : state.settings.startKg;
+        return round2(last.kg - baseline);
       }
 
       // If partnerState.code is set but memberId is missing, try to recover:
