@@ -278,7 +278,7 @@ async function handleApi(req, res, pathname) {
         sync.partnerRoom = body.partnerRoom && typeof body.partnerRoom === "object"
           ? {
               code: String(body.partnerRoom.code || "").slice(0, 12),
-              slot: String(body.partnerRoom.slot || "").slice(0, 12),
+              memberId: String(body.partnerRoom.memberId || body.partnerRoom.slot || "").slice(0, 12),
               name: String(body.partnerRoom.name || "").slice(0, 20),
             }
           : null;
