@@ -295,6 +295,24 @@ async function handleApi(req, res, pathname) {
         statuses.push({ text: String(existing.status).slice(0, 80), ts: existing.updated || Date.now() });
       }
       const body = await readBody(req);
+      // Delete a specific status by its timestamp (for individual cleanup)
+      if (body.removeStatusTs != null) {
+        const targetTs = Number(body.removeStatusTs);
+        if (Number.isFinite(targetTs)) {
+          statuses = statuses.filter((s) => Number(s.ts) !== targetTs);
+        }
+      }
+      // Bulk replace the entire statuses array (for cleanup tools)
+      if (Array.isArray(body.statuses)) {
+        statuses = body.statuses
+          .filter((s) => s && typeof s.text === "string")
+          .map((s) => ({
+            text: String(s.text).slice(0, 80),
+            ts: Number(s.ts) || Date.now(),
+            delta: typeof s.delta === "number" ? s.delta : null,
+          }))
+          .slice(-10);
+      }
       const newStatus = typeof body.status === "string" ? body.status.trim().slice(0, 80) : "";
       if (newStatus) {
         statuses.push({
