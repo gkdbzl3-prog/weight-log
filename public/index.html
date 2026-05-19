@@ -2847,6 +2847,7 @@
       myStatusInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
+          e.stopPropagation();
           saveMyStatus();
         }
       });
@@ -3201,6 +3202,9 @@
 
       // Keyboard shortcuts (desktop nicety)
       document.addEventListener('keydown', (e) => {
+        // Check both e.target and document.activeElement — the latter can shift mid-event if focus moves
+        const targetTag = (e.target && e.target.tagName) || '';
+        if (targetTag === 'INPUT' || targetTag === 'TEXTAREA') return;
         if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
         // Shift+arrows scroll decimal wheel, plain arrows scroll integer
         if (e.key === 'ArrowUp') { e.preventDefault(); (e.shiftKey ? wheelDec : wheelInt).scrollBy({ top: -CELL_H, behavior: 'smooth' }); }
