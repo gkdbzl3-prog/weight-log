@@ -131,6 +131,18 @@ function normalizeRoom(room) {
 
 const MAX_MEMBERS = 20;
 
+function findExistingMember(members, body) {
+  const requestedId = String(body.memberId || body.slot || "").slice(0, 12);
+  if (requestedId && Object.prototype.hasOwnProperty.call(members, requestedId)) {
+    return requestedId;
+  }
+
+  const name = String(body.name || "").trim();
+  if (!name || name === "익명" || name === "나") return null;
+  const match = Object.entries(members).find(([_, member]) => member && member.name === name);
+  return match ? match[0] : null;
+}
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let data = "";
@@ -187,6 +199,11 @@ async function handleApi(req, res, pathname) {
       const room = normalizeRoom(await readDoc("rooms", code));
       if (!room) return json(res, 404, { error: "방을 찾을 수 없어요" });
       const members = room.members || {};
+      const body = await readBody(req);
+      const existingMemberId = findExistingMember(members, body);
+      if (existingMemberId) {
+        return json(res, 200, { memberId: existingMemberId, reused: true });
+      }
       if (Object.keys(members).length >= MAX_MEMBERS) {
         return json(res, 409, { error: `방 인원이 가득 찼어요 (최대 ${MAX_MEMBERS}명)` });
       }

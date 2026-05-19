@@ -2436,7 +2436,11 @@
               return true;
             }
           }
-          const joinRes = await fetch(`/api/room/${partnerState.code}/join`, { method: 'POST' });
+          const joinRes = await fetch(`/api/room/${partnerState.code}/join`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ name: partnerState.name, memberId: partnerState.memberId }),
+          });
           if (joinRes.ok) {
             const d = await joinRes.json();
             partnerState.memberId = d.memberId || d.slot;
@@ -2557,9 +2561,11 @@
             return (Number(b[1]?.updated) || 0) - (Number(a[1]?.updated) || 0);
           });
         const rows = entries.map(([memberId, m]) => {
-          const isMe = memberId === myId;
-          // For the other person's slot, '나' or empty is a default placeholder, not a real nickname
           const rawName = m.name || '';
+          const myName = partnerState.name || '';
+          const isLikelyMe = !!myName && myName !== '익명' && myName !== '나' && rawName === myName;
+          const isMe = memberId === myId || isLikelyMe;
+          // For the other person's slot, '나' or empty is a default placeholder, not a real nickname
           const displayName = isMe
             ? (rawName || '익명')
             : (rawName && rawName !== '나' ? rawName : '익명');
@@ -2663,7 +2669,11 @@
         if (code.length < 6) { showToast('6자리 코드를 입력해 봐요.'); return; }
         const name = document.getElementById('partnerMyName').value.trim() || '익명';
         try {
-          const res = await fetch(`/api/room/${code}/join`, { method: 'POST' });
+          const res = await fetch(`/api/room/${code}/join`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ name }),
+          });
           if (!res.ok) {
             const err = await res.json();
             showToast(err.error || '참여할 수 없어요.');
