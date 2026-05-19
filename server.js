@@ -1,10 +1,16 @@
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 
 const port = Number(process.env.PORT || 8080);
 const publicDir = join(process.cwd(), "public");
-const SERVER_START = Date.now();
+// Version = HTML file mtime so version changes only when actual content is deployed,
+// not on every server restart (cold start, scaling, crash recovery, etc).
+let HTML_VERSION = Date.now();
+try {
+  const st = await stat(join(publicDir, "index.html"));
+  HTML_VERSION = Math.floor(st.mtimeMs);
+} catch { /* fall back to startup time */ }
 const FIREBASE_PROJECT_ID = "weight-log-9e860";
 const FIREBASE_API_KEY = "AIzaSyDpmmoDqNt7E60amZK3EtTLMS-aIF7D8Qw";
 const FIRESTORE_BASE =
@@ -209,7 +215,7 @@ function json(res, status, body) {
 async function handleApi(req, res, pathname) {
   // GET /api/version  →  used by clients to detect new deploys and auto-reload
   if (pathname === "/api/version" && req.method === "GET") {
-    return json(res, 200, { version: SERVER_START });
+    return json(res, 200, { version: HTML_VERSION });
   }
 
   // POST /api/room  →  create room (creator becomes the first member)
