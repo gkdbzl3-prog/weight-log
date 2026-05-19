@@ -5,6 +5,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <meta name="theme-color" content="#fbfaf7" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Weight-room</title>
   <style>
     :root {
@@ -2905,6 +2908,38 @@
       setInterval(autoPull, 60000);
       // Refresh just the "방금 / N분 전" label every 30s so it stays current
       setInterval(() => { if (syncState.code) renderSync(); }, 30000);
+
+      // ---- Auto reload on new deploy ----
+      // Compares the server build version with the one captured when this tab loaded.
+      // If they differ, reload silently (when tab is hidden) or after a 3s toast.
+      let loadedVersion = null;
+      let versionReloadScheduled = false;
+      async function checkVersion() {
+        if (versionReloadScheduled) return;
+        try {
+          const r = await fetch('/api/version', { cache: 'no-store' });
+          if (!r.ok) return;
+          const { version } = await r.json();
+          if (loadedVersion === null) {
+            loadedVersion = version;
+            return;
+          }
+          if (version !== loadedVersion) {
+            versionReloadScheduled = true;
+            if (document.hidden) {
+              location.reload();
+            } else {
+              showToast('새 버전이에요 · 잠시 후 새로고침');
+              setTimeout(() => location.reload(), 3000);
+            }
+          }
+        } catch { }
+      }
+      checkVersion();
+      setInterval(checkVersion, 60000);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkVersion();
+      });
 
       // Keyboard shortcuts (desktop nicety)
       document.addEventListener('keydown', (e) => {
