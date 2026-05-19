@@ -2358,6 +2358,38 @@
         return round2(last.kg - state.settings.startKg);
       }
 
+      // If partnerState.code is set but memberId is missing, try to recover:
+      //   1) match by name against current room members
+      //   2) fall back to joining the room with a fresh memberId
+      // Returns true on success.
+      async function ensureMemberId() {
+        if (partnerState.memberId) return true;
+        if (!partnerState.code) return false;
+        try {
+          const r = await fetch(`/api/room/${partnerState.code}`);
+          if (!r.ok) return false;
+          const data = await r.json();
+          const members = data.members || {};
+          const myName = partnerState.name;
+          if (myName && myName !== '익명' && myName !== '나') {
+            const match = Object.entries(members).find(([_, m]) => m && m.name === myName);
+            if (match) {
+              partnerState.memberId = match[0];
+              savePartnerState();
+              return true;
+            }
+          }
+          const joinRes = await fetch(`/api/room/${partnerState.code}/join`, { method: 'POST' });
+          if (joinRes.ok) {
+            const d = await joinRes.json();
+            partnerState.memberId = d.memberId || d.slot;
+            savePartnerState();
+            return true;
+          }
+        } catch { }
+        return false;
+      }
+
       async function pushSelf(newStatus = null) {
         if (!partnerState.code || !partnerState.memberId) return { ok: false, reason: 'no-room' };
         const delta = myDelta();
@@ -2557,9 +2589,16 @@
       async function saveMyStatus() {
         const v = myStatusInput.value.trim().slice(0, 40);
         if (!v) return;
-        if (!partnerState.code || !partnerState.memberId) {
+        if (!partnerState.code) {
           showToast('먼저 친구방을 만들거나 참여해 주세요.');
           return;
+        }
+        if (!partnerState.memberId) {
+          const ok = await ensureMemberId();
+          if (!ok) {
+            showToast('멤버 정보를 복구하지 못했어요. 방 나가기 후 다시 참여해 보세요.');
+            return;
+          }
         }
         myStatusInput.disabled = true;
         const result = await pushSelf(v);
@@ -2601,6 +2640,12 @@
 
       loadPartnerState();
       renderPartner();
+      // One-shot recovery on load if we're "in a room" but missing memberId
+      if (partnerState.code && !partnerState.memberId) {
+        ensureMemberId().then((ok) => {
+          if (ok) { renderPartner(); fetchPartnerData(); }
+        });
+      }
 
       // ---- Cross-device sync ----
       const SYNC_KEY = 'weightLog.sync.v1';
@@ -2622,7 +2667,7 @@
         return {
           entries: sortedEntries(),
           settings: state.settings,
-          partnerRoom: partnerState.code
+          partnerRoom: (partnerState.code && partnerState.memberId)
             ? { code: partnerState.code, memberId: partnerState.memberId, name: partnerState.name }
             : null,
         };
@@ -2658,7 +2703,8 @@
         renderAll();
         const incomingRoom = data.partnerRoom && data.partnerRoom.code ? data.partnerRoom : null;
         const incomingMemberId = incomingRoom ? (incomingRoom.memberId || incomingRoom.slot) : null;
-        const shouldApplyRoom = incomingRoom && (
+        // Only apply if we got a real memberId — otherwise we'd clobber the local one with null.
+        const shouldApplyRoom = incomingRoom && incomingMemberId && (
           !partnerState.code ||
           partnerState.code !== incomingRoom.code ||
           partnerState.memberId !== incomingMemberId
