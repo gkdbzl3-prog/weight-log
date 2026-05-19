@@ -839,6 +839,60 @@
       animation: drop 0.45s cubic-bezier(.4, .0, .2, 1);
     }
 
+    /* Partner room tabs */
+    .partner-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .partner-tabs:empty { display: none; }
+
+    .partner-tab {
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--ink-soft);
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .partner-tab:hover {
+      color: var(--ink);
+    }
+    .partner-tab.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+    .partner-tab.add {
+      color: var(--accent);
+      border-style: dashed;
+      font-weight: 600;
+    }
+    .partner-tab.add:hover {
+      background: var(--accent-soft);
+    }
+
+    .partner-cancel-add {
+      background: none;
+      border: none;
+      color: var(--ink-faint);
+      font: inherit;
+      font-size: 0.8rem;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      margin-top: 12px;
+      display: block;
+      padding: 0;
+    }
+    .partner-cancel-add:hover { color: var(--ink-soft); }
+
     /* Partner / together card */
     .partner-hint {
       font-size: 0.76rem;
@@ -1632,6 +1686,8 @@
     <div class="card partner-card">
       <h3 class="card-title">같이 하기 🤝</h3>
 
+      <div class="partner-tabs" id="partnerTabs"></div>
+
       <div id="partnerSetup">
         <p class="partner-hint">체중은 비공개 — 시작 대비 변화량(±kg)만 친구에게 보여요.</p>
         <div class="partner-name-wrap">
@@ -1643,6 +1699,7 @@
           <input type="text" id="joinCodeInput" placeholder="친구한테 받은 코드" maxlength="6" />
           <button class="btn btn-ghost" id="joinRoomBtn">참여</button>
         </div>
+        <button class="partner-cancel-add" id="cancelAddRoomBtn" style="display:none">취소</button>
       </div>
 
       <div id="partnerRoom" style="display:none">
@@ -2450,7 +2507,12 @@
 
       // ---- Partner / Together feature ----
       const PARTNER_KEY = 'weightRoom.partner.v1';
+      // Active room state (mirrors the entry in joinedRooms with code === activeRoomCode)
       let partnerState = { code: null, memberId: null, name: '나', status: '' };
+      // List of all joined rooms. Each: { code, memberId, name }
+      let joinedRooms = [];
+      // Whether the setup form should be shown for adding a new room (when user already has rooms)
+      let addingNewRoom = false;
       let latestPartnerData = null;
       let statusSaveInFlight = false;
 
@@ -2464,18 +2526,91 @@
       function loadPartnerState() {
         try {
           const raw = localStorage.getItem(PARTNER_KEY);
-          if (raw) partnerState = { ...partnerState, ...JSON.parse(raw) };
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            partnerState = { ...partnerState, ...parsed };
+            if (Array.isArray(parsed.joinedRooms)) joinedRooms = parsed.joinedRooms;
+          }
           // Legacy migration: old field was `slot`, new field is `memberId`
           if (!partnerState.memberId && partnerState.slot) {
             partnerState.memberId = partnerState.slot;
           }
           delete partnerState.slot;
+          // Backfill joinedRooms from legacy single-room state
+          if (partnerState.code && partnerState.memberId && !joinedRooms.some((r) => r.code === partnerState.code)) {
+            joinedRooms.push({
+              code: partnerState.code,
+              memberId: partnerState.memberId,
+              name: partnerState.name || '익명',
+            });
+          }
+          // If we have rooms but partnerState isn't pointing at one, activate the first
+          if (joinedRooms.length && !partnerState.code) {
+            const r = joinedRooms[0];
+            partnerState.code = r.code;
+            partnerState.memberId = r.memberId;
+            partnerState.name = r.name || partnerState.name;
+          }
         } catch { }
       }
 
       function savePartnerState() {
-        localStorage.setItem(PARTNER_KEY, JSON.stringify(partnerState));
+        // Persist the active room snapshot + the full joinedRooms list
+        const payload = { ...partnerState, joinedRooms };
+        localStorage.setItem(PARTNER_KEY, JSON.stringify(payload));
         if (typeof scheduleSyncPush === 'function') scheduleSyncPush();
+      }
+
+      // Mirror the active room's data back into joinedRooms so name/memberId stay in sync.
+      function syncActiveToJoinedRooms() {
+        if (!partnerState.code) return;
+        const idx = joinedRooms.findIndex((r) => r.code === partnerState.code);
+        const entry = { code: partnerState.code, memberId: partnerState.memberId, name: partnerState.name };
+        if (idx >= 0) joinedRooms[idx] = entry;
+        else joinedRooms.push(entry);
+      }
+
+      // Switch the active tab to a different joined room (by code, or null to clear).
+      function setActiveRoom(code) {
+        if (code == null) {
+          partnerState = { ...partnerState, code: null, memberId: null };
+          addingNewRoom = false;
+          savePartnerState();
+          renderPartner();
+          return;
+        }
+        const room = joinedRooms.find((r) => r.code === code);
+        if (!room) return;
+        partnerState.code = room.code;
+        partnerState.memberId = room.memberId;
+        partnerState.name = room.name || partnerState.name;
+        addingNewRoom = false;
+        latestPartnerData = null;
+        savePartnerState();
+        renderPartner();
+      }
+
+      function renderPartnerTabs() {
+        const tabs = document.getElementById('partnerTabs');
+        if (!tabs) return;
+        if (!joinedRooms.length) { tabs.innerHTML = ''; return; }
+        const parts = joinedRooms.map((r) => {
+          const isActive = !addingNewRoom && r.code === partnerState.code;
+          const label = escapeHtml(r.name && r.name !== '나' && r.name !== '익명' ? r.name : r.code);
+          return `<button type="button" class="partner-tab${isActive ? ' active' : ''}" data-code="${r.code}">${label}</button>`;
+        });
+        parts.push(`<button type="button" class="partner-tab add" data-action="add">+ 새 방</button>`);
+        tabs.innerHTML = parts.join('');
+        tabs.querySelectorAll('.partner-tab').forEach((b) => {
+          b.addEventListener('click', () => {
+            if (b.dataset.action === 'add') {
+              addingNewRoom = true;
+              renderPartner();
+            } else {
+              setActiveRoom(b.dataset.code);
+            }
+          });
+        });
       }
 
       function myDelta() {
@@ -2779,9 +2914,18 @@
       }
 
       function renderPartner() {
+        renderPartnerTabs();
         const setup = document.getElementById('partnerSetup');
         const room = document.getElementById('partnerRoom');
-        if (partnerState.code) {
+        const cancelAddBtn = document.getElementById('cancelAddRoomBtn');
+        // Show setup form when: no rooms yet, OR user clicked "+ 새 방"
+        const showSetup = addingNewRoom || !partnerState.code;
+        if (showSetup) {
+          setup.style.display = 'block';
+          room.style.display = 'none';
+          if (cancelAddBtn) cancelAddBtn.style.display = joinedRooms.length ? 'block' : 'none';
+          stopPolling();
+        } else {
           setup.style.display = 'none';
           room.style.display = 'block';
           document.getElementById('roomCodeDisplay').textContent = partnerState.code;
@@ -2791,10 +2935,6 @@
           }
           fetchPartnerData();
           startPolling();
-        } else {
-          setup.style.display = 'block';
-          room.style.display = 'none';
-          stopPolling();
         }
       }
 
@@ -2803,12 +2943,19 @@
         try {
           const res = await fetch('/api/room', { method: 'POST' });
           const data = await res.json();
-          partnerState = { code: data.code, memberId: data.memberId || data.slot, name, status: '' };
+          const newCode = data.code;
+          if (joinedRooms.some((r) => r.code === newCode)) {
+            showToast('이미 들어있는 방이에요.');
+            return;
+          }
+          joinedRooms.push({ code: newCode, memberId: data.memberId || data.slot, name });
+          partnerState = { code: newCode, memberId: data.memberId || data.slot, name, status: '' };
+          addingNewRoom = false;
           savePartnerState();
           renderPartner();
           await pushSelf();
           await pushSyncData({ silent: true });
-          showToast(`방 만들었어! 코드: ${data.code}`);
+          showToast(`방 만들었어! 코드: ${newCode}`);
         } catch {
           showToast('오류가 났어요. 다시 시도해 봐요.');
         }
@@ -2818,6 +2965,11 @@
         const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
         if (code.length < 6) { showToast('6자리 코드를 입력해 봐요.'); return; }
         const name = document.getElementById('partnerMyName').value.trim() || '익명';
+        if (joinedRooms.some((r) => r.code === code)) {
+          setActiveRoom(code);
+          showToast(`이미 들어있는 방이에요. 그 탭으로 전환.`);
+          return;
+        }
         try {
           const res = await fetch(`/api/room/${code}/join`, {
             method: 'POST',
@@ -2830,7 +2982,10 @@
             return;
           }
           const data = await res.json();
-          partnerState = { code, memberId: data.memberId || data.slot, name, status: '' };
+          const memberId = data.memberId || data.slot;
+          joinedRooms.push({ code, memberId, name });
+          partnerState = { code, memberId, name, status: '' };
+          addingNewRoom = false;
           savePartnerState();
           renderPartner();
           await pushSelf();
@@ -2839,6 +2994,11 @@
         } catch {
           showToast('오류가 났어요.');
         }
+      });
+
+      document.getElementById('cancelAddRoomBtn').addEventListener('click', () => {
+        addingNewRoom = false;
+        renderPartner();
       });
 
       document.getElementById('copyCodeBtn').addEventListener('click', () => {
@@ -2850,8 +3010,19 @@
       });
 
       document.getElementById('leaveRoomBtn').addEventListener('click', () => {
-        if (!confirm('방에서 나갈까요?')) return;
-        partnerState = { code: null, memberId: null, name: partnerState.name, status: '' };
+        if (!confirm('이 방에서 나갈까요?')) return;
+        const leavingCode = partnerState.code;
+        // Remove this room from the joined list
+        joinedRooms = joinedRooms.filter((r) => r.code !== leavingCode);
+        // Switch active to the next available room, or clear if none left
+        if (joinedRooms.length) {
+          const r = joinedRooms[0];
+          partnerState = { code: r.code, memberId: r.memberId, name: r.name || partnerState.name, status: '' };
+        } else {
+          partnerState = { code: null, memberId: null, name: partnerState.name, status: '' };
+        }
+        addingNewRoom = false;
+        latestPartnerData = null;
         savePartnerState();
         renderPartner();
         pushSyncData({ silent: true });
@@ -2906,7 +3077,9 @@
         const newName = v || '익명';
         if (newName === partnerState.name) return;
         partnerState.name = newName;
+        syncActiveToJoinedRooms();
         savePartnerState();
+        renderPartnerTabs();
         await pushSelf();
         await fetchPartnerData();
         showToast(`닉네임: ${newName}`);
@@ -2988,6 +3161,7 @@
           partnerRoom: (partnerState.code && partnerState.memberId)
             ? { code: partnerState.code, memberId: partnerState.memberId, name: partnerState.name }
             : null,
+          joinedRooms: joinedRooms.slice(),
         };
       }
 
@@ -3033,26 +3207,43 @@
         }
         saveState(state);
         renderAll();
+        // Restore joinedRooms array (multi-room) from sync if present
+        let roomsChanged = false;
+        if (Array.isArray(data.joinedRooms)) {
+          for (const r of data.joinedRooms) {
+            if (!r || !r.code || !r.memberId) continue;
+            if (!joinedRooms.some((x) => x.code === r.code)) {
+              joinedRooms.push({ code: r.code, memberId: r.memberId, name: r.name || '익명' });
+              roomsChanged = true;
+            }
+          }
+        }
+        // Legacy single partnerRoom restore
         const incomingRoom = data.partnerRoom && data.partnerRoom.code ? data.partnerRoom : null;
         const incomingMemberId = incomingRoom ? (incomingRoom.memberId || incomingRoom.slot) : null;
-        // Only apply if we got a real memberId — otherwise we'd clobber the local one with null.
-        const shouldApplyRoom = incomingRoom && incomingMemberId && (
-          !partnerState.code ||
-          partnerState.code !== incomingRoom.code ||
-          partnerState.memberId !== incomingMemberId
-        );
-
-        // Restore partner-room membership from sync, including replacing stale local room data.
-        if (shouldApplyRoom) {
-          partnerState = {
-            ...partnerState,
+        if (incomingRoom && incomingMemberId && !joinedRooms.some((r) => r.code === incomingRoom.code)) {
+          joinedRooms.push({
             code: incomingRoom.code,
             memberId: incomingMemberId,
-            name: incomingRoom.name || partnerState.name,
+            name: incomingRoom.name || '익명',
+          });
+          roomsChanged = true;
+        }
+        // If we now have rooms but no active room, activate the first
+        if (joinedRooms.length && !partnerState.code) {
+          const r = joinedRooms[0];
+          partnerState = {
+            ...partnerState,
+            code: r.code,
+            memberId: r.memberId,
+            name: r.name || partnerState.name,
           };
-          localStorage.setItem(PARTNER_KEY, JSON.stringify(partnerState));
+          roomsChanged = true;
+        }
+        if (roomsChanged) {
+          localStorage.setItem(PARTNER_KEY, JSON.stringify({ ...partnerState, joinedRooms }));
           renderPartner();
-          pushSelf().then(() => fetchPartnerData());
+          if (partnerState.code) pushSelf().then(() => fetchPartnerData());
         }
       }
 
