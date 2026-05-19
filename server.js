@@ -143,6 +143,52 @@ function findExistingMember(members, body) {
   return match ? match[0] : null;
 }
 
+function memberNameKey(member) {
+  const name = String(member?.name || "").trim();
+  if (!name || name === "익명" || name === "나") return "";
+  return name;
+}
+
+function mergeMemberRecords(a = {}, b = {}) {
+  const aStatuses = Array.isArray(a.statuses) ? a.statuses : [];
+  const bStatuses = Array.isArray(b.statuses) ? b.statuses : [];
+  const statuses = [...aStatuses, ...bStatuses]
+    .filter((status) => status && status.text)
+    .sort((x, y) => (Number(x.ts) || 0) - (Number(y.ts) || 0))
+    .slice(-10);
+  const newer = (Number(b.updated) || 0) >= (Number(a.updated) || 0) ? b : a;
+  return {
+    ...a,
+    ...newer,
+    name: newer.name || a.name || b.name || "",
+    delta: typeof newer.delta === "number" ? newer.delta : (typeof a.delta === "number" ? a.delta : b.delta || 0),
+    statuses,
+    updated: Math.max(Number(a.updated) || 0, Number(b.updated) || 0),
+  };
+}
+
+function compactRoomMembers(room) {
+  if (!room?.members || typeof room.members !== "object") return room;
+  const compacted = {};
+  const nameToId = new Map();
+  for (const [memberId, member] of Object.entries(room.members)) {
+    if (!member) {
+      compacted[memberId] = member;
+      continue;
+    }
+    const nameKey = memberNameKey(member);
+    if (!nameKey || !nameToId.has(nameKey)) {
+      compacted[memberId] = member;
+      if (nameKey) nameToId.set(nameKey, memberId);
+      continue;
+    }
+    const targetId = nameToId.get(nameKey);
+    compacted[targetId] = mergeMemberRecords(compacted[targetId], member);
+  }
+  room.members = compacted;
+  return room;
+}
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let data = "";
@@ -189,15 +235,17 @@ async function handleApi(req, res, pathname) {
 
     // GET /api/room/:code  →  fetch room data (all members)
     if (!action && req.method === "GET") {
-      const room = normalizeRoom(await readDoc("rooms", code));
+      let room = normalizeRoom(await readDoc("rooms", code));
       if (!room) return json(res, 404, { error: "방을 찾을 수 없어요" });
+      room = compactRoomMembers(room);
       return json(res, 200, { members: room.members || {} });
     }
 
     // POST /api/room/:code/join  →  add a new member, returns memberId
     if (action === "join" && req.method === "POST") {
-      const room = normalizeRoom(await readDoc("rooms", code));
+      let room = normalizeRoom(await readDoc("rooms", code));
       if (!room) return json(res, 404, { error: "방을 찾을 수 없어요" });
+      room = compactRoomMembers(room);
       const members = room.members || {};
       const body = await readBody(req);
       const existingMemberId = findExistingMember(members, body);
@@ -230,8 +278,9 @@ async function handleApi(req, res, pathname) {
 
     // PUT /api/room/:code/:memberId  →  update member data (delta, name, status)
     if (action && action !== "join" && req.method === "PUT") {
-      const room = normalizeRoom(await readDoc("rooms", code));
+      let room = normalizeRoom(await readDoc("rooms", code));
       if (!room) return json(res, 404, { error: "방 없음" });
+      room = compactRoomMembers(room);
       const members = room.members || {};
       const existing = members[action] || {};
       // Migrate legacy single-status field, if present
