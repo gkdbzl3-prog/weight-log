@@ -93,6 +93,21 @@ function mergeEntries(a = [], b = []) {
   });
 }
 
+function entryKey(entry) {
+  if (!entry || !entry.date) return "";
+  return entry.ts != null ? `t:${entry.ts}` : `d:${entry.date}`;
+}
+
+function normalizeDeletedKeys(keys) {
+  if (!Array.isArray(keys)) return [];
+  return [...new Set(keys.map((key) => String(key || "").slice(0, 64)).filter(Boolean))].slice(-1000);
+}
+
+function filterDeletedEntries(entries = [], deletedKeys = []) {
+  const deleted = new Set(deletedKeys);
+  return entries.filter((entry) => !deleted.has(entryKey(entry)));
+}
+
 function genCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
@@ -254,6 +269,7 @@ async function handleApi(req, res, pathname) {
         entries: sync.entries || [],
         settings: sync.settings || {},
         partnerRoom: sync.partnerRoom || null,
+        deletedEntryKeys: normalizeDeletedKeys(sync.deletedEntryKeys),
         updated: sync.updated,
       });
     }
@@ -267,12 +283,19 @@ async function handleApi(req, res, pathname) {
       }
       const body = await readBody(req);
       const incomingEntries = Array.isArray(body.entries) ? body.entries : [];
+      const deletedEntryKeys = normalizeDeletedKeys([
+        ...(sync.deletedEntryKeys || []),
+        ...(body.deletedEntryKeys || []),
+      ]);
+      sync.deletedEntryKeys = deletedEntryKeys;
+      const filteredIncomingEntries = filterDeletedEntries(incomingEntries, deletedEntryKeys);
+      const filteredStoredEntries = filterDeletedEntries(sync.entries, deletedEntryKeys);
       const incomingSettings = body.settings && typeof body.settings === "object" ? body.settings : null;
       // Default: union merge (preserves entries from other devices).
       // With replaceEntries: true, full overwrite — used by deletion to actually propagate removals.
       sync.entries = body.replaceEntries === true
-        ? incomingEntries.slice()
-        : mergeEntries(sync.entries, incomingEntries);
+        ? filteredIncomingEntries.slice()
+        : mergeEntries(filteredStoredEntries, filteredIncomingEntries);
       if (incomingSettings) sync.settings = { ...sync.settings, ...incomingSettings };
       if ("partnerRoom" in body) {
         sync.partnerRoom = body.partnerRoom && typeof body.partnerRoom === "object"
@@ -289,6 +312,7 @@ async function handleApi(req, res, pathname) {
         entries: sync.entries,
         settings: sync.settings,
         partnerRoom: sync.partnerRoom || null,
+        deletedEntryKeys: sync.deletedEntryKeys,
         updated: sync.updated,
       });
     }

@@ -2156,6 +2156,10 @@
             const ts = Number(b.dataset.ts) || 0;
             const dateStr = b.dataset.date;
             if (!confirm('이 기록을 삭제할까요?')) return;
+            const deletedEntry = ts
+              ? state.entries.find(x => Number(x.ts) === ts)
+              : state.entries.find(x => x.date === dateStr && !x.ts);
+            rememberDeletedEntry(deletedEntry || { date: dateStr, ts: ts || undefined });
             if (ts) {
               state.entries = state.entries.filter(x => Number(x.ts) !== ts);
             } else {
@@ -2166,13 +2170,25 @@
             renderAll();
             // Force-replace on server so the deleted entry doesn't get merged back
             if (syncState.code) {
+              clearTimeout(syncPushTimer);
+              syncPushPending = true;
               try {
-                await fetch(`/api/sync/${syncState.code}`, {
+                const res = await fetch(`/api/sync/${syncState.code}`, {
                   method: 'PUT',
                   headers: { 'content-type': 'application/json' },
                   body: JSON.stringify({ ...syncPayload(), replaceEntries: true }),
                 });
-              } catch { }
+                if (res.ok) {
+                  const data = await res.json();
+                  applySyncedData(data);
+                  syncState.lastSynced = data.updated || Date.now();
+                  saveSyncState();
+                  renderSync();
+                }
+              } catch {
+              } finally {
+                syncPushPending = false;
+              }
             }
           });
         });
@@ -2752,9 +2768,11 @@
 
       // ---- Cross-device sync ----
       const SYNC_KEY = 'weightLog.sync.v1';
+      const DELETED_ENTRIES_KEY = 'weightLog.deletedEntries.v1';
       let syncState = { code: null, lastSynced: null };
       let syncPushTimer = null;
       let syncPushPending = false;
+      let deletedEntryKeys = new Set(loadDeletedEntryKeys());
 
       function loadSyncState() {
         try {
@@ -2767,10 +2785,43 @@
         localStorage.setItem(SYNC_KEY, JSON.stringify(syncState));
       }
 
+      function entryKey(entry) {
+        if (!entry || !entry.date) return '';
+        return entry.ts != null ? `t:${entry.ts}` : `d:${entry.date}`;
+      }
+
+      function loadDeletedEntryKeys() {
+        try {
+          const raw = localStorage.getItem(DELETED_ENTRIES_KEY);
+          const list = raw ? JSON.parse(raw) : [];
+          return Array.isArray(list) ? list.filter(Boolean) : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function saveDeletedEntryKeys() {
+        const list = Array.from(deletedEntryKeys).slice(-1000);
+        deletedEntryKeys = new Set(list);
+        localStorage.setItem(DELETED_ENTRIES_KEY, JSON.stringify(list));
+      }
+
+      function rememberDeletedEntry(entry) {
+        const key = entryKey(entry);
+        if (!key) return;
+        deletedEntryKeys.add(key);
+        saveDeletedEntryKeys();
+      }
+
+      function filterDeletedEntries(entries = []) {
+        return entries.filter((entry) => !deletedEntryKeys.has(entryKey(entry)));
+      }
+
       function syncPayload() {
         return {
-          entries: sortedEntries(),
+          entries: filterDeletedEntries(sortedEntries()),
           settings: state.settings,
+          deletedEntryKeys: Array.from(deletedEntryKeys),
           partnerRoom: (partnerState.code && partnerState.memberId)
             ? { code: partnerState.code, memberId: partnerState.memberId, name: partnerState.name }
             : null,
@@ -2797,10 +2848,16 @@
 
       function applySyncedData(data) {
         if (!data || typeof data !== 'object') return;
+        if (Array.isArray(data.deletedEntryKeys)) {
+          data.deletedEntryKeys.forEach((key) => {
+            if (key) deletedEntryKeys.add(String(key));
+          });
+          saveDeletedEntryKeys();
+        }
         if (Array.isArray(data.entries)) {
           // Trust the server snapshot so deletions actually propagate.
           // The syncPushPending guard prevents this from clobbering unsynced local saves.
-          state.entries = data.entries.slice().sort((a, b) => {
+          state.entries = filterDeletedEntries(data.entries).slice().sort((a, b) => {
             const t1 = Number(a.ts) || 0;
             const t2 = Number(b.ts) || 0;
             if (t1 !== t2) return t1 - t2;
