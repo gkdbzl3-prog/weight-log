@@ -2326,7 +2326,7 @@
 
       // ---- Partner / Together feature ----
       const PARTNER_KEY = 'weightRoom.partner.v1';
-      let partnerState = { code: null, slot: null, name: '나', status: '' };
+      let partnerState = { code: null, memberId: null, name: '나', status: '' };
 
       function escapeHtml(s) {
         return String(s).replace(/[&<>"']/g, (c) => ({
@@ -2339,6 +2339,11 @@
         try {
           const raw = localStorage.getItem(PARTNER_KEY);
           if (raw) partnerState = { ...partnerState, ...JSON.parse(raw) };
+          // Legacy migration: old field was `slot`, new field is `memberId`
+          if (!partnerState.memberId && partnerState.slot) {
+            partnerState.memberId = partnerState.slot;
+          }
+          delete partnerState.slot;
         } catch { }
       }
 
@@ -2354,13 +2359,13 @@
       }
 
       async function pushSelf(newStatus = null) {
-        if (!partnerState.code || !partnerState.slot) return { ok: false, reason: 'no-room' };
+        if (!partnerState.code || !partnerState.memberId) return { ok: false, reason: 'no-room' };
         const delta = myDelta();
         const body = { name: partnerState.name };
         if (delta !== null) body.delta = delta;
         if (newStatus && newStatus.trim()) body.status = newStatus.trim();
         try {
-          const res = await fetch(`/api/room/${partnerState.code}/${partnerState.slot}`, {
+          const res = await fetch(`/api/room/${partnerState.code}/${partnerState.memberId}`, {
             method: 'PUT',
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify(body),
@@ -2402,11 +2407,24 @@
 
       function renderPartnerTable(data) {
         const table = document.getElementById('partnerTable');
-        const slots = ['slot1', 'slot2'];
-        const rows = slots.map((s) => {
-          const m = data[s];
-          if (!m) return null;
-          const isMe = s === partnerState.slot;
+        // New schema: data.members = { [memberId]: { name, delta, statuses, updated } }
+        // Backwards compat: also accept legacy data.slot1/slot2 layout
+        let membersMap = data && data.members && typeof data.members === 'object' ? data.members : {};
+        if (!Object.keys(membersMap).length) {
+          if (data?.slot1) membersMap.slot1 = data.slot1;
+          if (data?.slot2) membersMap.slot2 = data.slot2;
+        }
+        const myId = partnerState.memberId;
+        // Sort: me first, then by latest update desc
+        const entries = Object.entries(membersMap)
+          .filter(([_, m]) => m)
+          .sort((a, b) => {
+            const aMine = a[0] === myId, bMine = b[0] === myId;
+            if (aMine !== bMine) return aMine ? -1 : 1;
+            return (Number(b[1]?.updated) || 0) - (Number(a[1]?.updated) || 0);
+          });
+        const rows = entries.map(([memberId, m]) => {
+          const isMe = memberId === myId;
           // For the other person's slot, '나' or empty is a default placeholder, not a real nickname
           const rawName = m.name || '';
           const displayName = isMe
@@ -2484,7 +2502,7 @@
         try {
           const res = await fetch('/api/room', { method: 'POST' });
           const data = await res.json();
-          partnerState = { code: data.code, slot: data.slot, name, status: '' };
+          partnerState = { code: data.code, memberId: data.memberId || data.slot, name, status: '' };
           savePartnerState();
           renderPartner();
           await pushSelf();
@@ -2507,7 +2525,7 @@
             return;
           }
           const data = await res.json();
-          partnerState = { code, slot: data.slot, name, status: '' };
+          partnerState = { code, memberId: data.memberId || data.slot, name, status: '' };
           savePartnerState();
           renderPartner();
           await pushSelf();
@@ -2528,7 +2546,7 @@
 
       document.getElementById('leaveRoomBtn').addEventListener('click', () => {
         if (!confirm('방에서 나갈까요?')) return;
-        partnerState = { code: null, slot: null, name: partnerState.name, status: '' };
+        partnerState = { code: null, memberId: null, name: partnerState.name, status: '' };
         savePartnerState();
         renderPartner();
         pushSyncData({ silent: true });
@@ -2539,7 +2557,7 @@
       async function saveMyStatus() {
         const v = myStatusInput.value.trim().slice(0, 40);
         if (!v) return;
-        if (!partnerState.code || !partnerState.slot) {
+        if (!partnerState.code || !partnerState.memberId) {
           showToast('먼저 친구방을 만들거나 참여해 주세요.');
           return;
         }
@@ -2605,7 +2623,7 @@
           entries: sortedEntries(),
           settings: state.settings,
           partnerRoom: partnerState.code
-            ? { code: partnerState.code, slot: partnerState.slot, name: partnerState.name }
+            ? { code: partnerState.code, memberId: partnerState.memberId, name: partnerState.name }
             : null,
         };
       }
@@ -2639,10 +2657,11 @@
         saveState(state);
         renderAll();
         const incomingRoom = data.partnerRoom && data.partnerRoom.code ? data.partnerRoom : null;
+        const incomingMemberId = incomingRoom ? (incomingRoom.memberId || incomingRoom.slot) : null;
         const shouldApplyRoom = incomingRoom && (
           !partnerState.code ||
           partnerState.code !== incomingRoom.code ||
-          partnerState.slot !== incomingRoom.slot
+          partnerState.memberId !== incomingMemberId
         );
 
         // Restore partner-room membership from sync, including replacing stale local room data.
@@ -2650,7 +2669,7 @@
           partnerState = {
             ...partnerState,
             code: incomingRoom.code,
-            slot: incomingRoom.slot,
+            memberId: incomingMemberId,
             name: incomingRoom.name || partnerState.name,
           };
           localStorage.setItem(PARTNER_KEY, JSON.stringify(partnerState));

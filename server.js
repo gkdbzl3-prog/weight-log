@@ -96,6 +96,25 @@ function genCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
+// Normalize legacy slot1/slot2 rooms into the new `members` map.
+// Each member is keyed by a stable id ('slot1'/'slot2' for legacy data).
+function normalizeRoom(room) {
+  if (!room) return room;
+  if (!room.members || typeof room.members !== "object") {
+    room.members = {};
+    if (room.slot1) room.members.slot1 = room.slot1;
+    if (room.slot2) room.members.slot2 = room.slot2;
+  } else {
+    if (room.slot1 && !room.members.slot1) room.members.slot1 = room.slot1;
+    if (room.slot2 && !room.members.slot2) room.members.slot2 = room.slot2;
+  }
+  delete room.slot1;
+  delete room.slot2;
+  return room;
+}
+
+const MAX_MEMBERS = 20;
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let data = "";
@@ -114,50 +133,63 @@ function json(res, status, body) {
 }
 
 async function handleApi(req, res, pathname) {
-  // POST /api/room  →  create room
+  // POST /api/room  →  create room (creator becomes the first member)
   if (pathname === "/api/room" && req.method === "POST") {
     let code;
     let attempts = 0;
     do { code = genCode(); attempts++; } while (await readDoc("rooms", code) && attempts < 20);
-    await writeDoc("rooms", code, { created: Date.now(), slot1: null, slot2: null });
-    return json(res, 200, { code, slot: "slot1" });
+    const memberId = genCode();
+    await writeDoc("rooms", code, {
+      created: Date.now(),
+      members: { [memberId]: null },
+    });
+    return json(res, 200, { code, memberId });
   }
 
   const parts = pathname.split("/");
-  // /api/room/:code        → parts[3] = code
-  // /api/room/:code/join   → parts[3] = code, parts[4] = 'join'
-  // /api/room/:code/slot1  → parts[3] = code, parts[4] = 'slot1'
+  // /api/room/:code               → parts[3] = code
+  // /api/room/:code/join          → parts[3] = code, parts[4] = 'join'
+  // /api/room/:code/:memberId     → parts[3] = code, parts[4] = memberId
   if (parts[1] === "api" && parts[2] === "room" && parts[3]) {
     const code = parts[3].toUpperCase();
     const action = parts[4];
 
-    // GET /api/room/:code  →  fetch room data
+    // GET /api/room/:code  →  fetch room data (all members)
     if (!action && req.method === "GET") {
-      const room = await readDoc("rooms", code);
+      const room = normalizeRoom(await readDoc("rooms", code));
       if (!room) return json(res, 404, { error: "방을 찾을 수 없어요" });
-      return json(res, 200, { slot1: room.slot1, slot2: room.slot2 });
+      return json(res, 200, { members: room.members || {} });
     }
 
-    // POST /api/room/:code/join  →  join as slot2
+    // POST /api/room/:code/join  →  add a new member, returns memberId
     if (action === "join" && req.method === "POST") {
-      const room = await readDoc("rooms", code);
+      const room = normalizeRoom(await readDoc("rooms", code));
       if (!room) return json(res, 404, { error: "방을 찾을 수 없어요" });
-      const slot = !room.slot2 ? "slot2" : !room.slot1 ? "slot1" : null;
-      if (!slot) return json(res, 409, { error: "이미 꽉 찼어요" });
-      return json(res, 200, { slot });
+      const members = room.members || {};
+      if (Object.keys(members).length >= MAX_MEMBERS) {
+        return json(res, 409, { error: `방 인원이 가득 찼어요 (최대 ${MAX_MEMBERS}명)` });
+      }
+      let memberId;
+      let attempts = 0;
+      do { memberId = genCode(); attempts++; } while (members[memberId] && attempts < 20);
+      members[memberId] = null;
+      room.members = members;
+      await writeDoc("rooms", code, room);
+      return json(res, 200, { memberId });
     }
 
-    // PUT /api/room/:code/slot1|slot2  →  update member delta (+ optionally append a new status)
-    if ((action === "slot1" || action === "slot2") && req.method === "PUT") {
-      const room = await readDoc("rooms", code);
+    // PUT /api/room/:code/:memberId  →  update member data (delta, name, status)
+    if (action && action !== "join" && req.method === "PUT") {
+      const room = normalizeRoom(await readDoc("rooms", code));
       if (!room) return json(res, 404, { error: "방 없음" });
-      const body = await readBody(req);
-      const existing = room[action] || {};
+      const members = room.members || {};
+      const existing = members[action] || {};
       // Migrate legacy single-status field, if present
       let statuses = Array.isArray(existing.statuses) ? existing.statuses.slice() : [];
       if (!statuses.length && existing.status) {
         statuses.push({ text: String(existing.status).slice(0, 60), ts: existing.updated || Date.now() });
       }
+      const body = await readBody(req);
       const newStatus = typeof body.status === "string" ? body.status.trim().slice(0, 60) : "";
       if (newStatus) {
         statuses.push({
@@ -167,12 +199,13 @@ async function handleApi(req, res, pathname) {
         });
         if (statuses.length > 10) statuses = statuses.slice(-10);
       }
-      room[action] = {
+      members[action] = {
         name: String(body.name || existing.name || "").slice(0, 20),
         delta: typeof body.delta === "number" ? body.delta : (existing.delta || 0),
         statuses,
         updated: Date.now(),
       };
+      room.members = members;
       await writeDoc("rooms", code, room);
       return json(res, 200, { ok: true });
     }
