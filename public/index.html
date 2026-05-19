@@ -636,7 +636,6 @@
       max-height: 220px;
       overflow-y: auto;
       margin-top: 4px;
-      width: 300px;
     }
 
     .recent-row {
@@ -1423,6 +1422,7 @@
 
       .recent-card {
         grid-area: recent;
+        width: 370px;
       }
 
       .partner-card {
@@ -2038,9 +2038,18 @@
         const xs = data.map(tsOf);
         const ys = data.map(d => d.kg);
         const minX = Math.min(...xs), maxX = Math.max(...xs);
-        const padY = 0.6;
-        const minY = Math.min(...ys, state.settings.idealKg, state.settings.realKg) - padY;
-        const maxY = Math.max(...ys, state.settings.startKg) + padY;
+        // Y range: zoom into the data points only (ignore goal/start lines), so small variations show.
+        const dataMinY = Math.min(...ys);
+        const dataMaxY = Math.max(...ys);
+        const padY = Math.max(0.4, (dataMaxY - dataMinY) * 0.25);
+        let minY = dataMinY - padY;
+        let maxY = dataMaxY + padY;
+        // Guarantee a sensible minimum range so a flat day still renders nicely
+        if (maxY - minY < 1.0) {
+          const mid = (maxY + minY) / 2;
+          minY = mid - 0.5;
+          maxY = mid + 0.5;
+        }
         // If only one point, center horizontally
         const sx = x => data.length === 1
           ? W / 2
@@ -2060,6 +2069,8 @@
 
         const idealY = sy(state.settings.idealKg);
         const realY = sy(state.settings.realKg);
+        const idealInRange = state.settings.idealKg >= minY && state.settings.idealKg <= maxY;
+        const realInRange = state.settings.realKg >= minY && state.settings.realKg <= maxY;
 
         const dots = data.map(d => {
           const x = sx(tsOf(d));
@@ -2078,16 +2089,14 @@
             <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
           </linearGradient>
         </defs>
-        <line x1="${P}" x2="${W - P}" y1="${idealY.toFixed(1)}" y2="${idealY.toFixed(1)}"
-              stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 4" opacity="0.5"/>
-        <line x1="${P}" x2="${W - P}" y1="${realY.toFixed(1)}"  y2="${realY.toFixed(1)}"
-              stroke="var(--good)"   stroke-width="1" stroke-dasharray="3 4" opacity="0.5"/>
+        ${idealInRange ? `<line x1="${P}" x2="${W - P}" y1="${idealY.toFixed(1)}" y2="${idealY.toFixed(1)}" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3 4" opacity="0.5"/>` : ''}
+        ${realInRange ? `<line x1="${P}" x2="${W - P}" y1="${realY.toFixed(1)}" y2="${realY.toFixed(1)}" stroke="var(--good)" stroke-width="1" stroke-dasharray="3 4" opacity="0.5"/>` : ''}
         ${hasLine ? `<path d="${areaPath}" fill="url(#grad)" />` : ''}
         ${hasLine ? `<path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ''}
         ${dots}
       </svg>
-      <span class="chart-label ideal" style="top: ${idealPct}%">위시 ${state.settings.idealKg.toFixed(2)}</span>
-      <span class="chart-label real" style="top: ${realPct}%">현실 ${state.settings.realKg.toFixed(2)}</span>
+      ${idealInRange ? `<span class="chart-label ideal" style="top: ${idealPct}%">위시 ${state.settings.idealKg.toFixed(2)}</span>` : ''}
+      ${realInRange ? `<span class="chart-label real" style="top: ${realPct}%">현실 ${state.settings.realKg.toFixed(2)}</span>` : ''}
     `;
       }
 
