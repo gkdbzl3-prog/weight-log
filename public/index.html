@@ -1666,7 +1666,16 @@
         const decP = Math.round((r - intP) * 100);
         return { intP, decP };
       };
-      const sortedEntries = () => [...state.entries].sort((a, b) => a.date.localeCompare(b.date));
+      const sortedEntries = () => [...state.entries].sort((a, b) => {
+        const t1 = Number(a.ts) || 0;
+        const t2 = Number(b.ts) || 0;
+        if (t1 !== t2) return t1 - t2;
+        return (a.date || '').localeCompare(b.date || '');
+      });
+      const latestEntryOn = (dateStr) => {
+        const list = sortedEntries().filter(x => x.date === dateStr);
+        return list.length ? list[list.length - 1] : null;
+      };
       const lastEntry = () => {
         const e = sortedEntries();
         return e.length ? e[e.length - 1] : null;
@@ -1797,16 +1806,14 @@
         const cv = currentValue();
         if (cv == null) return;
         const date = todayStr();
-        // Replace today's entry if it exists
-        const i = state.entries.findIndex(e => e.date === date);
+        // Always append a new timestamped entry (multiple per day allowed)
         const entry = { date, kg: cv, ts: Date.now() };
-        if (i >= 0) state.entries[i] = entry;
-        else state.entries.push(entry);
+        state.entries.push(entry);
         saveState(state);
         renderAll();
         pushSelf();
         scheduleSyncPush();
-        showToast(i >= 0 ? `오늘 기록 수정됨 · ${cv.toFixed(2)}kg` : `저장됨 · ${cv.toFixed(2)}kg`);
+        showToast(`기록됨 · ${cv.toFixed(2)}kg`);
         // Drop animation on both wheels' selected cells
         [wheelInt, wheelDec].forEach(w => {
           const sel = w.querySelector('.wheel-cell.selected');
@@ -1846,18 +1853,17 @@
           el.className = 'val ' + (kgDiff > 0 ? 'up' : kgDiff < 0 ? 'down' : '');
         };
 
-        // Yesterday
+        // Yesterday (latest record on that day)
         const yday = daysAgoStr(1);
-        const ydayE = e.find(x => x.date === yday);
+        const ydayE = latestEntryOn(yday);
         const ydayEl = document.getElementById('ydayDate');
         ydayEl.textContent = ydayE ? `어제 ${ydayE.kg.toFixed(2)}kg` : '어제 기록 없음';
         setStat('diffYday', last && ydayE ? round2(last.kg - ydayE.kg) : null);
 
-        // 7 days ago — use closest entry within last 7 days at oldest
+        // 7 days ago — latest record on the closest day within 7~10 days
         let weekAgoE = null;
         for (let d = 7; d <= 10; d++) {
-          const s = daysAgoStr(d);
-          weekAgoE = e.find(x => x.date === s);
+          weekAgoE = latestEntryOn(daysAgoStr(d));
           if (weekAgoE) break;
         }
         setStat('diffWeek', last && weekAgoE ? round2(last.kg - weekAgoE.kg) : null);
@@ -1979,11 +1985,12 @@
           wrap.innerHTML = '<div class="chart-empty">아직 기록이 없어요. 첫 기록을 남겨봐요.</div>';
           return;
         }
-        // Filter last 30 days window
-        const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 29);
-        const data = e.filter(x => new Date(x.date + 'T00:00:00') >= cutoff);
+        // Filter last 30 days window — use ts (real timestamp) so multiple entries per day show separately
+        const cutoffMs = Date.now() - 29 * 86400000;
+        const tsOf = (d) => Number(d.ts) || new Date(d.date + 'T00:00:00').getTime();
+        const data = e.filter(x => tsOf(x) >= cutoffMs);
         const W = 600, H = 180, P = 24;
-        const xs = data.map(d => new Date(d.date + 'T00:00:00').getTime());
+        const xs = data.map(tsOf);
         const ys = data.map(d => d.kg);
         const minX = Math.min(...xs), maxX = Math.max(...xs);
         const padY = 0.6;
@@ -1996,7 +2003,7 @@
         const sy = y => H - P - ((y - minY) / Math.max(0.1, maxY - minY)) * (H - P * 2);
 
         const linePath = data.map((d, i) => {
-          const x = sx(new Date(d.date + 'T00:00:00').getTime());
+          const x = sx(tsOf(d));
           const y = sy(d.kg);
           return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
         }).join(' ');
@@ -2010,7 +2017,7 @@
         const realY = sy(state.settings.realKg);
 
         const dots = data.map(d => {
-          const x = sx(new Date(d.date + 'T00:00:00').getTime());
+          const x = sx(tsOf(d));
           const y = sy(d.kg);
           return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${data.length === 1 ? 4 : 2.5}" fill="var(--accent)" />`;
         }).join('');
@@ -2057,22 +2064,33 @@
               diffStr = `<span class="recent-diff ${cls}">${sign}${d.toFixed(2)}</span>`;
             }
           }
+          const tsNum = Number(x.ts) || 0;
+          const timeStr = tsNum
+            ? new Date(tsNum).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+            : '';
           return `
         <div class="recent-row">
-          <div class="recent-date">${fmtDate(x.date)}</div>
+          <div class="recent-date">${fmtDate(x.date)}${timeStr ? ` · ${timeStr}` : ''}</div>
           <div class="recent-val">${x.kg.toFixed(2)} kg ${diffStr}
-            <button class="recent-del" data-date="${x.date}" title="삭제">×</button>
+            <button class="recent-del" data-ts="${tsNum}" data-date="${x.date}" title="삭제">×</button>
           </div>
         </div>`;
         }).join('');
         list.querySelectorAll('.recent-del').forEach(b => {
           b.addEventListener('click', () => {
-            const d = b.dataset.date;
-            if (confirm(`${d} 기록을 삭제할까요?`)) {
-              state.entries = state.entries.filter(x => x.date !== d);
-              saveState(state);
-              renderAll();
+            const ts = Number(b.dataset.ts) || 0;
+            const dateStr = b.dataset.date;
+            if (!confirm('이 기록을 삭제할까요?')) return;
+            if (ts) {
+              state.entries = state.entries.filter(x => Number(x.ts) !== ts);
+            } else {
+              // Legacy fallback for entries without ts
+              const idx = state.entries.findIndex(x => x.date === dateStr && !x.ts);
+              if (idx >= 0) state.entries.splice(idx, 1);
             }
+            saveState(state);
+            renderAll();
+            scheduleSyncPush();
           });
         });
       }
@@ -2345,7 +2363,12 @@
           const m = data[s];
           if (!m) return null;
           const isMe = s === partnerState.slot;
-          const name = escapeHtml(m.name || '');
+          // For the other person's slot, '나' or empty is a default placeholder, not a real nickname
+          const rawName = m.name || '';
+          const displayName = isMe
+            ? (rawName || '익명')
+            : (rawName && rawName !== '나' ? rawName : '친구');
+          const name = escapeHtml(displayName);
           // Backwards-compat: legacy single status string
           let statuses = Array.isArray(m.statuses) ? m.statuses : [];
           if (!statuses.length && m.status) {
@@ -2409,7 +2432,7 @@
       }
 
       document.getElementById('createRoomBtn').addEventListener('click', async () => {
-        const name = document.getElementById('partnerMyName').value.trim() || '나';
+        const name = document.getElementById('partnerMyName').value.trim() || '익명';
         try {
           const res = await fetch('/api/room', { method: 'POST' });
           const data = await res.json();
@@ -2427,7 +2450,7 @@
       document.getElementById('joinRoomBtn').addEventListener('click', async () => {
         const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
         if (code.length < 6) { showToast('6자리 코드를 입력해 봐요.'); return; }
-        const name = document.getElementById('partnerMyName').value.trim() || '나';
+        const name = document.getElementById('partnerMyName').value.trim() || '익명';
         try {
           const res = await fetch(`/api/room/${code}/join`, { method: 'POST' });
           if (!res.ok) {
@@ -2522,18 +2545,21 @@
       }
 
       function mergeSyncedEntries(localEntries = [], remoteEntries = []) {
+        // Union of all entries, deduped by ts so multiple records per day are preserved.
         const map = new Map();
-        for (const entry of localEntries) {
-          if (entry?.date) map.set(entry.date, entry);
+        const keyOf = (entry) => entry.ts != null
+          ? `t:${entry.ts}`
+          : `d:${entry.date}`;
+        for (const entry of [...localEntries, ...remoteEntries]) {
+          if (!entry || !entry.date) continue;
+          map.set(keyOf(entry), entry);
         }
-        for (const entry of remoteEntries) {
-          if (!entry?.date) continue;
-          const previous = map.get(entry.date);
-          if (!previous || (Number(entry.ts) || 0) > (Number(previous.ts) || 0)) {
-            map.set(entry.date, entry);
-          }
-        }
-        return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+        return Array.from(map.values()).sort((a, b) => {
+          const t1 = Number(a.ts) || 0;
+          const t2 = Number(b.ts) || 0;
+          if (t1 !== t2) return t1 - t2;
+          return (a.date || '').localeCompare(b.date || '');
+        });
       }
 
       function applySyncedData(data) {

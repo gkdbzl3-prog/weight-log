@@ -76,20 +76,20 @@ async function writeDoc(collection, id, data) {
   }
 }
 
-// Merge entries by date — entry with the latest `ts` wins for the same date
+// Union of entries — deduped by ts so multiple records per day are preserved.
 function mergeEntries(a = [], b = []) {
   const map = new Map();
-  for (const e of a) {
-    if (e && e.date) map.set(e.date, e);
-  }
-  for (const e of b) {
+  const keyOf = (e) => e.ts != null ? `t:${e.ts}` : `d:${e.date}`;
+  for (const e of [...a, ...b]) {
     if (!e || !e.date) continue;
-    const prev = map.get(e.date);
-    if (!prev || (Number(e.ts) || 0) > (Number(prev.ts) || 0)) {
-      map.set(e.date, e);
-    }
+    map.set(keyOf(e), e);
   }
-  return Array.from(map.values()).sort((x, y) => x.date.localeCompare(y.date));
+  return Array.from(map.values()).sort((x, y) => {
+    const t1 = Number(x.ts) || 0;
+    const t2 = Number(y.ts) || 0;
+    if (t1 !== t2) return t1 - t2;
+    return (x.date || "").localeCompare(y.date || "");
+  });
 }
 
 function genCode() {
