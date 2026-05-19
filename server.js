@@ -144,7 +144,7 @@ function findExistingMember(members, body) {
 }
 
 function memberNameKey(member) {
-  const name = String(member?.name || "").trim();
+  const name = String(member?.name || "").trim().replace(/\s+/g, "").replace(/님$/, "");
   if (!name || name === "익명" || name === "나") return "";
   return name;
 }

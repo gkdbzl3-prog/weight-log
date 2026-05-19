@@ -2543,7 +2543,7 @@
       }
 
       function memberNameKey(member) {
-        const name = (member?.name || '').trim();
+        const name = (member?.name || '').trim().replace(/\s+/g, '').replace(/님$/, '');
         if (!name || name === '익명' || name === '나') return '';
         return name;
       }
@@ -2610,8 +2610,8 @@
           });
         const rows = entries.map(([memberId, m]) => {
           const rawName = m.name || '';
-          const myName = partnerState.name || '';
-          const isLikelyMe = !!myName && myName !== '익명' && myName !== '나' && rawName === myName;
+          const myName = memberNameKey({ name: partnerState.name });
+          const isLikelyMe = !!myName && memberNameKey(m) === myName;
           const isMe = memberId === myId || isLikelyMe;
           // For the other person's slot, '나' or empty is a default placeholder, not a real nickname
           const displayName = isMe
@@ -2816,10 +2816,13 @@
 
       loadPartnerState();
       renderPartner();
+      if (partnerState.code && partnerState.memberId) {
+        pushSelf().then(() => fetchPartnerData());
+      }
       // One-shot recovery on load if we're "in a room" but missing memberId
       if (partnerState.code && !partnerState.memberId) {
         ensureMemberId().then((ok) => {
-          if (ok) { renderPartner(); fetchPartnerData(); }
+          if (ok) { renderPartner(); pushSelf().then(() => fetchPartnerData()); }
         });
       }
 
@@ -2946,6 +2949,7 @@
           };
           localStorage.setItem(PARTNER_KEY, JSON.stringify(partnerState));
           renderPartner();
+          pushSelf().then(() => fetchPartnerData());
         }
       }
 
