@@ -1064,6 +1064,15 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .partner-feed-delta {
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .partner-feed-delta.up   { color: var(--accent); }
+    .partner-feed-delta.down { color: var(--good); }
+
     .partner-feed-empty {
       font-size: 0.78rem;
       color: var(--ink-faint);
@@ -2489,12 +2498,20 @@
           // Newest first, up to 3
           const recent = statuses.slice().reverse().slice(0, 3);
           const feedHtml = recent.length
-            ? recent.map((s) =>
-              `<div class="partner-feed-item">
+            ? recent.map((s) => {
+              let deltaHtml = '';
+              if (typeof s.delta === 'number') {
+                const sd = s.delta;
+                const sign = sd > 0 ? '+' : '';
+                const cl = sd > 0 ? 'up' : sd < 0 ? 'down' : '';
+                deltaHtml = `<span class="partner-feed-delta ${cl}">${sign}${sd.toFixed(2)}</span>`;
+              }
+              return `<div class="partner-feed-item">
                 <span class="partner-feed-text">${escapeHtml(s.text || '')}</span>
+                ${deltaHtml}
                 <span class="partner-feed-time">${feedTimeAgo(s.ts)}</span>
-              </div>`
-            ).join('')
+              </div>`;
+            }).join('')
             : `<div class="partner-feed-empty">${isMe ? '한마디 남겨봐요' : '아직 조용해요'}</div>`;
 
           return `<div class="partner-row">
