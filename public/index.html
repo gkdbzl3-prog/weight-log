@@ -1854,21 +1854,33 @@
       const directBtn = document.getElementById('directBtn');
       const directWrap = document.getElementById('directInputWrap');
       const directInput = document.getElementById('directInput');
+      // Track whether the user actually typed since the panel was opened.
+      // Programmatic value sets don't fire 'input' so this stays false on auto-fill.
+      let directInputUserTyped = false;
+
       directBtn.addEventListener('click', () => {
         const open = directWrap.classList.toggle('open');
         if (open) {
           const cv = currentValue();
           directInput.value = cv != null ? cv.toFixed(2) : '';
+          directInputUserTyped = false;
           directInput.focus();
           directInput.select();
         }
       });
+
+      directInput.addEventListener('input', () => {
+        directInputUserTyped = true;
+      });
+
       directInput.addEventListener('change', () => {
+        // Only save if the user actually typed something this session.
+        if (!directInputUserTyped) return;
+        directInputUserTyped = false;
         const v = parseFloat(directInput.value);
         if (isNaN(v) || v < INT_MIN || v >= INT_MAX + 1) return;
         const rounded = round2(v);
         scrollToValue(rounded, true);
-        // Direct input should also record the entry — no need to click 기록 again.
         const now = Date.now();
         if (now - lastSaveTs < 1500) return;
         const last = state.entries[state.entries.length - 1];
@@ -1888,7 +1900,7 @@
       directInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          directInput.blur();  // triggers the change handler above
+          directInput.blur();
         }
       });
 
