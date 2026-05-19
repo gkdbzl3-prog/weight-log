@@ -268,7 +268,11 @@ async function handleApi(req, res, pathname) {
       const body = await readBody(req);
       const incomingEntries = Array.isArray(body.entries) ? body.entries : [];
       const incomingSettings = body.settings && typeof body.settings === "object" ? body.settings : null;
-      sync.entries = mergeEntries(sync.entries, incomingEntries);
+      // Default: union merge (preserves entries from other devices).
+      // With replaceEntries: true, full overwrite — used by deletion to actually propagate removals.
+      sync.entries = body.replaceEntries === true
+        ? incomingEntries.slice()
+        : mergeEntries(sync.entries, incomingEntries);
       if (incomingSettings) sync.settings = { ...sync.settings, ...incomingSettings };
       if ("partnerRoom" in body) {
         sync.partnerRoom = body.partnerRoom && typeof body.partnerRoom === "object"

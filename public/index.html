@@ -636,10 +636,11 @@
 
     /* Recent list */
     .recent {
-      max-height: 220px;
-      overflow-y: auto;
       margin-top: 4px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
     }
+    .recent::-webkit-scrollbar { display: none; }
 
     .recent-row {
       display: flex;
@@ -2151,20 +2152,28 @@
         </div>`;
         }).join('');
         list.querySelectorAll('.recent-del').forEach(b => {
-          b.addEventListener('click', () => {
+          b.addEventListener('click', async () => {
             const ts = Number(b.dataset.ts) || 0;
             const dateStr = b.dataset.date;
             if (!confirm('이 기록을 삭제할까요?')) return;
             if (ts) {
               state.entries = state.entries.filter(x => Number(x.ts) !== ts);
             } else {
-              // Legacy fallback for entries without ts
               const idx = state.entries.findIndex(x => x.date === dateStr && !x.ts);
               if (idx >= 0) state.entries.splice(idx, 1);
             }
             saveState(state);
             renderAll();
-            scheduleSyncPush();
+            // Force-replace on server so the deleted entry doesn't get merged back
+            if (syncState.code) {
+              try {
+                await fetch(`/api/sync/${syncState.code}`, {
+                  method: 'PUT',
+                  headers: { 'content-type': 'application/json' },
+                  body: JSON.stringify({ ...syncPayload(), replaceEntries: true }),
+                });
+              } catch { }
+            }
           });
         });
       }
