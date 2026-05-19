@@ -2569,12 +2569,9 @@
           if (!statuses.length && m.status) {
             statuses = [{ text: m.status, ts: m.updated || Date.now() }];
           }
-          // Display delta = the delta captured at the time of the most recent status
-          // Falls back to current delta if no status entry has a frozen delta yet
-          const lastStatus = statuses.length ? statuses[statuses.length - 1] : null;
-          const displayDelta = (lastStatus && typeof lastStatus.delta === 'number')
-            ? lastStatus.delta
-            : m.delta;
+          // Card headline delta is the current start-to-latest change, not the last message's historical delta.
+          const currentOwnDelta = isMe ? myDelta() : null;
+          const displayDelta = currentOwnDelta !== null ? currentOwnDelta : m.delta;
           const safeDisplayDelta = Number.isFinite(displayDelta) ? displayDelta : 0;
           const sign = safeDisplayDelta > 0 ? '+' : '';
           const cls = safeDisplayDelta > 0 ? 'up' : safeDisplayDelta < 0 ? 'down' : '';
