@@ -178,6 +178,18 @@ async function handleApi(req, res, pathname) {
       return json(res, 200, { memberId });
     }
 
+    // DELETE /api/room/:code/:memberId  →  remove a member from the room
+    if (action && action !== "join" && req.method === "DELETE") {
+      const room = normalizeRoom(await readDoc("rooms", code));
+      if (!room) return json(res, 404, { error: "방 없음" });
+      if (room.members && room.members[action]) {
+        delete room.members[action];
+        await writeDoc("rooms", code, room);
+        return json(res, 200, { ok: true, removed: action });
+      }
+      return json(res, 404, { error: "멤버 없음" });
+    }
+
     // PUT /api/room/:code/:memberId  →  update member data (delta, name, status)
     if (action && action !== "join" && req.method === "PUT") {
       const room = normalizeRoom(await readDoc("rooms", code));
