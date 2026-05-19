@@ -1859,12 +1859,20 @@
 
       // ---- Save ----
       const saveBtn = document.getElementById('saveBtn');
+      let lastSaveTs = 0;
       saveBtn.addEventListener('click', () => {
+        const now = Date.now();
+        // Guard 1: 1.5 second cooldown against accidental double-fire
+        if (now - lastSaveTs < 1500) return;
         const cv = currentValue();
         if (cv == null) return;
+        // Guard 2: same value just saved within 3s → treat as duplicate
+        const last = state.entries[state.entries.length - 1];
+        if (last && Math.abs((last.kg || 0) - cv) < 0.001 && (now - (Number(last.ts) || 0)) < 3000) return;
+        lastSaveTs = now;
         const date = todayStr();
         // Always append a new timestamped entry (multiple per day allowed)
-        const entry = { date, kg: cv, ts: Date.now() };
+        const entry = { date, kg: cv, ts: now };
         state.entries.push(entry);
         saveState(state);
         renderAll();
@@ -2459,6 +2467,26 @@
         } catch { }
       }
 
+      // For OWN statuses, recompute delta using the closest weight entry to status time.
+      // Falls back to stored s.delta if no entries to match.
+      function deltaForOwnStatus(statusTs) {
+        const entries = state.entries;
+        if (!entries.length || !statusTs) return null;
+        let closest = null;
+        let minDiff = Infinity;
+        for (const e of entries) {
+          const t = Number(e.ts) || 0;
+          if (!t) continue;
+          const diff = Math.abs(t - statusTs);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closest = e;
+          }
+        }
+        if (!closest) return null;
+        return round2(closest.kg - state.settings.startKg);
+      }
+
       function renderPartnerTable(data) {
         const table = document.getElementById('partnerTable');
         // New schema: data.members = { [memberId]: { name, delta, statuses, updated } }
@@ -2502,9 +2530,15 @@
           const recent = statuses.slice().reverse().slice(0, 3);
           const feedHtml = recent.length
             ? recent.map((s) => {
+              // For own statuses, recompute delta from the closest local weight entry.
+              // For others, use the delta as stored on the server.
+              let sd = (typeof s.delta === 'number') ? s.delta : null;
+              if (isMe) {
+                const recomputed = deltaForOwnStatus(s.ts);
+                if (recomputed !== null) sd = recomputed;
+              }
               let deltaHtml = '';
-              if (typeof s.delta === 'number') {
-                const sd = s.delta;
+              if (sd !== null && Math.abs(sd) < 50) {
                 const sign = sd > 0 ? '+' : '';
                 const cl = sd > 0 ? 'up' : sd < 0 ? 'down' : '';
                 deltaHtml = `<span class="partner-feed-delta ${cl}">${sign}${sd.toFixed(2)}</span>`;
@@ -2949,7 +2983,12 @@
         if (e.key === 'ArrowDown') { e.preventDefault(); (e.shiftKey ? wheelDec : wheelInt).scrollBy({ top: CELL_H, behavior: 'smooth' }); }
         if (e.key === 'ArrowLeft') { e.preventDefault(); wheelInt.scrollBy({ top: -CELL_H, behavior: 'smooth' }); }
         if (e.key === 'ArrowRight') { e.preventDefault(); wheelInt.scrollBy({ top: CELL_H, behavior: 'smooth' }); }
-        if (e.key === 'Enter') { e.preventDefault(); saveBtn.click(); }
+        if (e.key === 'Enter') {
+          // If saveBtn already has focus, let the browser fire its native click — don't double-fire.
+          if (document.activeElement === saveBtn) return;
+          e.preventDefault();
+          saveBtn.click();
+        }
       });
     })();
   </script>
