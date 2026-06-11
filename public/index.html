@@ -1901,6 +1901,7 @@
           if (v !== curInt) {
             curInt = v;
             updateStripStyles(intCells, clamped);
+            renderStats(); // 실시간 "시작 대비" 갱신
           }
         });
       }
@@ -1913,6 +1914,7 @@
           if (clamped !== curDec) {
             curDec = clamped;
             updateStripStyles(decCells, clamped);
+            renderStats(); // 실시간 "시작 대비" 갱신
           }
         });
       }
@@ -2060,11 +2062,21 @@
         }
         setStat('diffWeek', last && weekAgoE ? round2(last.kg - weekAgoE.kg) : null);
 
-        // Start
-        const startE = e[0];
+        // Start — "시작 대비": 설정에 입력한 시작 체중(마운자로 전, settings.startKg) 기준.
+        // 시작보다 빠지면 −, 찌면 + → 감량할수록 음수가 커진다. (목표 요약과 동일 기준)
+        // 실시간 입력값(휠/직접입력)으로 비교하므로 저장 전에도 휠을 돌리면 즉시 반영.
+        // (시작 체중 미설정 시 첫 기록으로 폴백, 휠 값 없으면 마지막 저장 기록으로 폴백)
+        const baselineKg =
+          (typeof state.settings.startKg === 'number' && !isNaN(state.settings.startKg))
+            ? state.settings.startKg
+            : (e[0] ? e[0].kg : null);
         const startDateEl = document.getElementById('startDate');
-        startDateEl.textContent = startE ? `${startE.date.slice(5).replace('-', '/')} 부터` : '시작 기록 없음';
-        setStat('diffStart', last && startE ? round2(last.kg - startE.kg) : null);
+        startDateEl.textContent =
+          baselineKg != null ? `시작 ${baselineKg.toFixed(2)}kg 대비` : '시작 체중 미설정';
+        const liveKg = currentValue();
+        const curForStart = liveKg != null ? liveKg : (last ? last.kg : null);
+        setStat('diffStart',
+          (curForStart != null && baselineKg != null) ? round2(curForStart - baselineKg) : null);
       }
 
       function getPeriodInfo() {
