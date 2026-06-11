@@ -2047,12 +2047,17 @@
           el.className = 'val ' + (kgDiff > 0 ? 'up' : kgDiff < 0 ? 'down' : '');
         };
 
+        // "오늘 잰 체중" = 실시간 휠/직접입력 값. 저장 전에도 휠을 돌리면 즉시 반영.
+        // 세 카드 모두 이 값을 "오늘"로 보고 비교 → 빠지면 −, 찌면 +. (없으면 마지막 기록으로 폴백)
+        const liveKg = currentValue();
+        const curKg = liveKg != null ? liveKg : (last ? last.kg : null);
+
         // Yesterday (latest record on that day)
         const yday = daysAgoStr(1);
         const ydayE = latestEntryOn(yday);
         const ydayEl = document.getElementById('ydayDate');
         ydayEl.textContent = ydayE ? `어제 ${ydayE.kg.toFixed(2)}kg` : '어제 기록 없음';
-        setStat('diffYday', last && ydayE ? round2(last.kg - ydayE.kg) : null);
+        setStat('diffYday', curKg != null && ydayE ? round2(curKg - ydayE.kg) : null);
 
         // 7 days ago — latest record on the closest day within 7~10 days
         let weekAgoE = null;
@@ -2060,7 +2065,7 @@
           weekAgoE = latestEntryOn(daysAgoStr(d));
           if (weekAgoE) break;
         }
-        setStat('diffWeek', last && weekAgoE ? round2(last.kg - weekAgoE.kg) : null);
+        setStat('diffWeek', curKg != null && weekAgoE ? round2(curKg - weekAgoE.kg) : null);
 
         // Start — "시작 대비": 설정에 입력한 시작 체중(마운자로 전, settings.startKg) 기준.
         // 시작보다 빠지면 −, 찌면 + → 감량할수록 음수가 커진다. (목표 요약과 동일 기준)
@@ -2073,10 +2078,8 @@
         const startDateEl = document.getElementById('startDate');
         startDateEl.textContent =
           baselineKg != null ? `시작 ${baselineKg.toFixed(2)}kg 대비` : '시작 체중 미설정';
-        const liveKg = currentValue();
-        const curForStart = liveKg != null ? liveKg : (last ? last.kg : null);
         setStat('diffStart',
-          (curForStart != null && baselineKg != null) ? round2(curForStart - baselineKg) : null);
+          (curKg != null && baselineKg != null) ? round2(curKg - baselineKg) : null);
       }
 
       function getPeriodInfo() {
