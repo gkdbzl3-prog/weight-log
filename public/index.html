@@ -1689,7 +1689,7 @@
       <div class="partner-tabs" id="partnerTabs"></div>
 
       <div id="partnerSetup">
-        <p class="partner-hint">체중은 비공개 — 시작 대비 변화량(±kg)만 친구에게 보여요.</p>
+        <p class="partner-hint">체중은 비공개 — 직전 기록 대비 변화량(±kg)만 친구에게 보여요.</p>
         <div class="partner-name-wrap">
           <input type="text" id="partnerMyName" placeholder="내 닉네임" maxlength="10" />
         </div>
@@ -1716,7 +1716,7 @@
           <input type="text" id="myStatusInput" placeholder="한마디 남기기 💬 (Enter로 게시)" maxlength="80" />
         </div>
         <div class="partner-table-header">
-          <span>시작 대비 변화량</span>
+          <span>직전 대비 변화량</span>
           <button class="btn-refresh" id="refreshPartnerBtn" title="새로고침">↻</button>
         </div>
         <div id="partnerTable"></div>
@@ -2629,14 +2629,13 @@
       }
 
       function myDelta() {
+        // 직전 기록 대비 변화량(가장 최근 기록 − 바로 그 이전 기록).
+        // 기록 리스트에 뜨는 ±값과 동일한 의미. 기록이 1개뿐이면 직전이 없어 null.
         const sorted = sortedEntries();
-        if (!sorted.length) return null;
+        if (sorted.length < 2) return null;
         const last = sorted[sorted.length - 1];
-        // Use the first recorded entry as the baseline (matches the "시작 대비" stat).
-        // Falls back to settings.startKg only if there are no entries to anchor from.
-        const first = sorted[0];
-        const baseline = (first && typeof first.kg === 'number') ? first.kg : state.settings.startKg;
-        return round2(last.kg - baseline);
+        const prev = sorted[sorted.length - 2];
+        return round2(last.kg - prev.kg);
       }
 
       // If partnerState.code is set but memberId is missing, try to recover:
@@ -2746,28 +2745,27 @@
         renderPartnerTable(data);
       }
 
-      // For OWN statuses, recompute delta using the closest weight entry to status time.
-      // Falls back to stored s.delta if no entries to match.
-      // For own statuses, show the cumulative change from the first recorded entry
-      // (matches the top total's baseline so all numbers are on the same scale).
+      // For OWN statuses: show the day-over-day change at the time of the 한마디 —
+      // i.e. the weight entry closest to the status time minus the entry just before it.
+      // (Matches the ±value shown in the record list. First-ever entry has no previous → null.)
       function deltaForOwnStatus(statusTs) {
         const entries = sortedEntries();
         if (!entries.length || !statusTs) return null;
-        let closest = null;
+        let closestIdx = -1;
         let minDiff = Infinity;
-        for (const e of entries) {
-          const t = Number(e.ts) || 0;
+        for (let i = 0; i < entries.length; i++) {
+          const t = Number(entries[i].ts) || 0;
           if (!t) continue;
           const diff = Math.abs(t - statusTs);
           if (diff < minDiff) {
             minDiff = diff;
-            closest = e;
+            closestIdx = i;
           }
         }
-        if (!closest) return null;
-        const first = entries[0];
-        const baseline = (first && typeof first.kg === 'number') ? first.kg : state.settings.startKg;
-        return round2(closest.kg - baseline);
+        if (closestIdx < 0) return null;
+        const prev = entries[closestIdx - 1];
+        if (!prev) return null; // 직전 기록이 없으면 변화량 없음
+        return round2(entries[closestIdx].kg - prev.kg);
       }
 
       function memberNameKey(member) {
@@ -2851,7 +2849,7 @@
           if (!statuses.length && m.status) {
             statuses = [{ text: m.status, ts: m.updated || Date.now() }];
           }
-          // Card headline delta is the current start-to-latest change, not the last message's historical delta.
+          // Card headline delta = my latest day-over-day change (직전 기록 대비), not a stored historical value.
           const currentOwnDelta = isMe ? myDelta() : null;
           const displayDelta = currentOwnDelta !== null ? currentOwnDelta : m.delta;
           const safeDisplayDelta = Number.isFinite(displayDelta) ? displayDelta : 0;
