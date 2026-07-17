@@ -1923,17 +1923,19 @@
       wheelDec.addEventListener('scroll', onDecScroll, { passive: true });
 
       // Mouse wheel: scroll the strip the cursor is over
-      // WHEEL_STEP = 휠 한 번에 넘어갈 칸 수 (숫자를 키우면 더 빨라짐)
-      const WHEEL_STEP = 3;
-      function bindMouseWheel(el) {
+      // 휠 한 번에 넘어갈 칸 수 (숫자를 키우면 더 빨라짐)
+      // 정수(kg)는 한 칸씩 또박또박, 소수점은 빠르게.
+      const WHEEL_STEP_INT = 1;
+      const WHEEL_STEP_DEC = 3;
+      function bindMouseWheel(el, step) {
         el.addEventListener('wheel', (e) => {
           e.preventDefault();
           const dir = e.deltaY > 0 ? 1 : -1;
-          el.scrollBy({ top: dir * CELL_H * WHEEL_STEP, behavior: 'smooth' });
+          el.scrollBy({ top: dir * CELL_H * step, behavior: 'smooth' });
         }, { passive: false });
       }
-      bindMouseWheel(wheelInt);
-      bindMouseWheel(wheelDec);
+      bindMouseWheel(wheelInt, WHEEL_STEP_INT);
+      bindMouseWheel(wheelDec, WHEEL_STEP_DEC);
 
       // ---- Direct input ----
       const directBtn = document.getElementById('directBtn');
@@ -2979,7 +2981,7 @@
 
       document.getElementById('joinRoomBtn').addEventListener('click', async () => {
         const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
-        if (code.length < 6) { showToast('6자리 코드를 입력해 봐요.'); return; }
+        if (code.length < 6) { showToast('8자리 코드를 입력해 봐요.'); return; }
         const name = document.getElementById('partnerMyName').value.trim() || '익명';
         if (joinedRooms.some((r) => r.code === code)) {
           setActiveRoom(code);
@@ -3310,7 +3312,7 @@
       async function connectSyncCode() {
         const code = document.getElementById('syncCodeInput').value.trim().toUpperCase();
         if (code.length < 6) {
-          showToast('6자리 코드를 입력해 주세요.');
+          showToast('8자리 코드를 입력해 주세요.');
           return;
         }
 
