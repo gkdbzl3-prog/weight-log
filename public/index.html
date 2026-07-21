@@ -2976,7 +2976,7 @@
 
       document.getElementById('joinRoomBtn').addEventListener('click', async () => {
         const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
-        if (code.length < 6) { showToast('6자리 코드를 입력해 봐요.'); return; }
+        if (code.length < 6) { showToast('8자리 코드를 입력해 봐요.'); return; }
         const name = document.getElementById('partnerMyName').value.trim() || '익명';
         if (joinedRooms.some((r) => r.code === code)) {
           setActiveRoom(code);
@@ -3307,7 +3307,7 @@
       async function connectSyncCode() {
         const code = document.getElementById('syncCodeInput').value.trim().toUpperCase();
         if (code.length < 6) {
-          showToast('6자리 코드를 입력해 주세요.');
+          showToast('8자리 코드를 입력해 주세요.');
           return;
         }
 
