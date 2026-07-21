@@ -1923,14 +1923,19 @@
       wheelDec.addEventListener('scroll', onDecScroll, { passive: true });
 
       // Mouse wheel: scroll the strip the cursor is over
-      function bindMouseWheel(el) {
+      // 휠 한 번에 넘어갈 칸 수 (숫자를 키우면 더 빨라짐)
+      // 정수(kg)는 한 칸씩 또박또박, 소수점은 빠르게.
+      const WHEEL_STEP_INT = 1;
+      const WHEEL_STEP_DEC = 3;
+      function bindMouseWheel(el, step) {
         el.addEventListener('wheel', (e) => {
           e.preventDefault();
-          el.scrollBy({ top: e.deltaY > 0 ? CELL_H : -CELL_H, behavior: 'smooth' });
+          const dir = e.deltaY > 0 ? 1 : -1;
+          el.scrollBy({ top: dir * CELL_H * step, behavior: 'smooth' });
         }, { passive: false });
       }
-      bindMouseWheel(wheelInt);
-      bindMouseWheel(wheelDec);
+      bindMouseWheel(wheelInt, WHEEL_STEP_INT);
+      bindMouseWheel(wheelDec, WHEEL_STEP_DEC);
 
       // ---- Direct input ----
       const directBtn = document.getElementById('directBtn');
